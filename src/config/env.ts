@@ -1,0 +1,23 @@
+import 'dotenv/config';
+
+import { z } from 'zod';
+
+const envSchema = z.object({
+  BOT_TOKEN: z.string().min(1, 'BOT_TOKEN is required'),
+  TELEGRAM_WEBHOOK_SECRET: z.string().min(1, 'TELEGRAM_WEBHOOK_SECRET is required'),
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  APP_BASE_URL: z.string().url('APP_BASE_URL must be a valid URL'),
+  PORT: z.coerce.number().int().positive().default(3000),
+});
+
+const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  const message = parsed.error.issues.map((issue) => issue.message).join('; ');
+  throw new Error(`Invalid environment configuration: ${message}`);
+}
+
+export const env = {
+  ...parsed.data,
+  APP_BASE_URL: parsed.data.APP_BASE_URL.replace(/\/$/, ''),
+};
