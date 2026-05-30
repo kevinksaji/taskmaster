@@ -57,7 +57,6 @@ async function handleEpicCreate(
     const created = await epicService.createEpic({
       telegramUserId: userId,
       name: text,
-      description: null,
     });
 
     await conversationService.clearFlow(userId);
@@ -181,7 +180,6 @@ async function handleTaskCreate(
       name: String(payload.name ?? ''),
       epicId: String(payload.epicId ?? ''),
       dueDate: dueDate ? new Date(dueDate) : null,
-      description: null,
     });
 
     await conversationService.clearFlow(userId);

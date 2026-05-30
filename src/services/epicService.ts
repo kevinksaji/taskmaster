@@ -2,7 +2,7 @@ import { Prisma, TaskStatus } from '@prisma/client';
 
 import { epicRepository } from '../repositories/epicRepository';
 import { UserFacingError } from '../utils/errors';
-import { descriptionSchema, epicNameSchema } from '../utils/validation';
+import { epicNameSchema } from '../utils/validation';
 
 export const epicService = {
   listEpics(telegramUserId: string) {
@@ -33,15 +33,13 @@ export const epicService = {
     };
   },
 
-  async createEpic(input: { telegramUserId: string; name: string; description: string | null }) {
+  async createEpic(input: { telegramUserId: string; name: string }) {
     const name = epicNameSchema.parse(input.name);
-    const description = input.description === null ? null : descriptionSchema.parse(input.description);
 
     try {
       return await epicRepository.create({
         telegramUserId: input.telegramUserId,
         name,
-        description,
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -52,17 +50,13 @@ export const epicService = {
     }
   },
 
-  async updateEpic(input: { telegramUserId: string; epicId: string; name?: string; description?: string | null }) {
+  async updateEpic(input: { telegramUserId: string; epicId: string; name?: string }) {
     await this.getEpicOrThrow(input.telegramUserId, input.epicId);
 
-    const data: { name?: string; description?: string | null } = {};
+    const data: { name?: string } = {};
 
     if (typeof input.name === 'string') {
       data.name = epicNameSchema.parse(input.name);
-    }
-
-    if (Object.prototype.hasOwnProperty.call(input, 'description')) {
-      data.description = input.description === null ? null : descriptionSchema.parse(input.description ?? '');
     }
 
     try {
