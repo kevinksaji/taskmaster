@@ -54,24 +54,10 @@ async function handleEpicCreate(
   text: string,
 ) {
   if (step === 'WAIT_NAME') {
-    await conversationService.updateFlow(userId, chatId, {
-      flow: FlowType.EPIC_CREATE,
-      step: 'WAIT_DESCRIPTION',
-      payload: {
-        ...payload,
-        name: text,
-      },
-    });
-
-    await ctx.reply('Add a description for this epic, or type skip.');
-    return;
-  }
-
-  if (step === 'WAIT_DESCRIPTION') {
     const created = await epicService.createEpic({
       telegramUserId: userId,
-      name: String(payload.name ?? ''),
-      description: text.toLowerCase() === 'skip' ? null : text,
+      name: text,
+      description: null,
     });
 
     await conversationService.clearFlow(userId);
@@ -119,26 +105,13 @@ async function handleEpicUpdate(
     return;
   }
 
-  if (step === 'WAIT_DESCRIPTION_VALUE') {
-    await epicService.updateEpic({
-      telegramUserId: userId,
-      epicId,
-      description: text.toLowerCase() === 'skip' ? null : text,
-    });
-    const details = await epicService.getEpicDetails(userId, epicId);
-
-    await conversationService.clearFlow(userId);
-    await ctx.reply(`✅ Epic updated.\n\n${formatEpicDetails(details)}`);
-    return;
-  }
-
   if (step === 'WAIT_FIELD') {
     await conversationService.updateFlow(userId, userChatId, {
       flow: FlowType.EPIC_UPDATE,
-      step,
+      step: 'WAIT_NAME_VALUE',
       payload,
     });
-    await ctx.reply('Choose the field using the buttons above, or send /cancel.');
+    await ctx.reply('Send the new epic name, or send /cancel.');
     return;
   }
 
@@ -203,26 +176,12 @@ async function handleTaskCreate(
       dueDate = parsed.value.toISOString();
     }
 
-    await conversationService.updateFlow(userId, chatId, {
-      flow: FlowType.TASK_CREATE,
-      step: 'WAIT_DESCRIPTION',
-      payload: {
-        ...payload,
-        dueDate,
-      },
-    });
-
-    await ctx.reply('Add a description for this task, or type skip.');
-    return;
-  }
-
-  if (step === 'WAIT_DESCRIPTION') {
     const task = await taskService.createTask({
       telegramUserId: userId,
       name: String(payload.name ?? ''),
       epicId: String(payload.epicId ?? ''),
-      dueDate: payload.dueDate ? new Date(String(payload.dueDate)) : null,
-      description: text.toLowerCase() === 'skip' ? null : text,
+      dueDate: dueDate ? new Date(dueDate) : null,
+      description: null,
     });
 
     await conversationService.clearFlow(userId);
@@ -262,17 +221,6 @@ async function handleTaskUpdate(
 
   if (step === 'WAIT_NAME_VALUE') {
     const task = await taskService.updateTask({ telegramUserId: userId, taskId, name: text });
-    await conversationService.clearFlow(userId);
-    await ctx.reply(`✅ Task updated.\n\n${formatTaskDetails(task)}`);
-    return;
-  }
-
-  if (step === 'WAIT_DESCRIPTION_VALUE') {
-    const task = await taskService.updateTask({
-      telegramUserId: userId,
-      taskId,
-      description: text.toLowerCase() === 'skip' ? null : text,
-    });
     await conversationService.clearFlow(userId);
     await ctx.reply(`✅ Task updated.\n\n${formatTaskDetails(task)}`);
     return;

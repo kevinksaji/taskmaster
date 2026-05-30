@@ -26,10 +26,7 @@ export function buildTaskCreatedKeyboard(taskId: string) {
 
 export function buildEpicUpdateFieldKeyboard() {
   return inlineKeyboard([
-    [
-      Markup.button.callback('Name', 'euf|name'),
-      Markup.button.callback('Description', 'euf|description'),
-    ],
+    [Markup.button.callback('Name', 'euf|name')],
     [Markup.button.callback('Cancel', 'ca')],
   ]);
 }

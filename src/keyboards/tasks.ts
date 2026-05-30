@@ -99,10 +99,7 @@ export function buildTaskUpdateFieldKeyboard() {
       Markup.button.callback('Name', 'tuf|name'),
       Markup.button.callback('Epic', 'tuf|epic'),
     ],
-    [
-      Markup.button.callback('Due date', 'tuf|dueDate'),
-      Markup.button.callback('Description', 'tuf|description'),
-    ],
+    [Markup.button.callback('Due date', 'tuf|dueDate')],
     [Markup.button.callback('Status', 'tuf|status')],
     cancelRow(),
   ]);
