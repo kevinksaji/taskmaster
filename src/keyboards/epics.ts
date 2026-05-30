@@ -29,8 +29,6 @@ export function buildEpicListKeyboard(epics: EpicLike[], page = 0) {
     ));
   }
 
-  rows.push([Markup.button.callback('Create epic', 'ne')]);
-
   return inlineKeyboard(rows);
 }
 

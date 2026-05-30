@@ -1,5 +1,6 @@
 import { Telegraf } from 'telegraf';
 
+import { buildPrimaryNavigationKeyboard } from '../keyboards/navigation';
 import { withErrorHandling } from '../middleware/withErrorHandling';
 import { getIdentity } from '../utils/telegram';
 
@@ -16,6 +17,8 @@ const startMessage = [
   '• Epic: Pending tasks',
   '• Task: Wash the car under that epic',
   '',
+  'Use the floating Tasks and Epics buttons for the main management hubs.',
+  '',
   'You never need to memorise IDs. When selection is needed, I will show inline buttons.',
   '',
   'Commands:',
@@ -27,6 +30,8 @@ const startMessage = [
 export function registerStartCommand(bot: Telegraf) {
   bot.start(withErrorHandling(async (ctx) => {
     getIdentity(ctx);
-    await ctx.reply(startMessage);
+    await ctx.reply(startMessage, {
+      reply_markup: buildPrimaryNavigationKeyboard(),
+    });
   }));
 }

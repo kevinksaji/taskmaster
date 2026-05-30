@@ -44,8 +44,6 @@ export function buildTaskListKeyboard(tasks: TaskLike[], filter: TaskFilter, pag
     ));
   }
 
-  rows.push([Markup.button.callback('Create task', 'nt')]);
-
   return inlineKeyboard(rows);
 }
 

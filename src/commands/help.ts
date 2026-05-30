@@ -1,5 +1,6 @@
 import { Telegraf } from 'telegraf';
 
+import { buildPrimaryNavigationKeyboard } from '../keyboards/navigation';
 import { withErrorHandling } from '../middleware/withErrorHandling';
 
 const helpMessage = [
@@ -24,11 +25,15 @@ const helpMessage = [
   '• /task_create',
   '• /epic_update',
   '',
+  'The floating Tasks and Epics buttons open the main action hubs with less button clutter.',
+  '',
   'Interactive flows use inline keyboards, so you never need to type internal IDs.',
 ].join('\n');
 
 export function registerHelpCommand(bot: Telegraf) {
   bot.command('help', withErrorHandling(async (ctx) => {
-    await ctx.reply(helpMessage);
+    await ctx.reply(helpMessage, {
+      reply_markup: buildPrimaryNavigationKeyboard(),
+    });
   }));
 }
