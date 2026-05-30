@@ -1,6 +1,6 @@
 # Taskmaster
 
-Taskmaster is a production-ready Telegram bot for managing Scrum-style epics and tasks entirely inside Telegram. It uses slash commands, inline Tasks and Epics navigation buttons, compact action menus, and a webhook-first architecture that works consistently in local development and on Vercel.
+Taskmaster is a production-ready Telegram bot for managing Scrum-style epics and tasks entirely inside Telegram. It uses slash commands, persistent `/tasks` and `/epics` reply-keyboard buttons, compact action menus, and a webhook-first architecture that works consistently in local development and on Vercel.
 
 ## Project overview
 
@@ -10,7 +10,7 @@ Core capabilities:
 
 - Epic create, view, and delete flows
 - Task create, view, and delete flows
-- Inline `Tasks` and `Epics` navigation buttons for low-clutter navigation
+- Persistent `/tasks` and `/epics` reply-keyboard buttons for quick navigation
 - Todo, done, overdue, and today task filters
 - Durable multi-step flows backed by PostgreSQL through Prisma
 - Stateless webhook processing for Vercel serverless deployment
@@ -147,7 +147,7 @@ This clears the registered Telegram webhook without dropping pending updates.
 
 ## Command list
 
-The inline `Tasks` and `Epics` buttons open the main management hubs. Slash commands remain available for direct access and power-user workflows.
+The persistent `/tasks` and `/epics` buttons jump straight into the main command flows. Slash commands remain available for direct access and power-user workflows.
 
 - `/start`: Welcome message, command list, and examples
 - `/help`: Command reference and usage examples
