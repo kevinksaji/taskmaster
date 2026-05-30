@@ -3,6 +3,7 @@ import { Markup } from 'telegraf';
 import { paginate } from '../utils/pagination';
 import { epicListNavData, epicSelectionData, epicSelectionNavData } from '../utils/callback-data';
 import { cancelRow, inlineKeyboard, paginationRow } from './common';
+import { withPrimaryNavigation } from './navigation';
 
 type EpicLike = {
   id: string;
@@ -14,10 +15,7 @@ export function buildEpicListKeyboard(epics: EpicLike[], page = 0) {
   const slice = paginate(epics, page);
   const rows = slice.items.flatMap((epic) => [
     [Markup.button.callback(`📘 ${epic.name}`, `ev|${epic.id}`)],
-    [
-      Markup.button.callback('Update', `eu|${epic.id}`),
-      Markup.button.callback('Delete', `ed|${epic.id}`),
-    ],
+    [Markup.button.callback('Delete', `ed|${epic.id}`)],
   ]);
 
   if (slice.pageCount > 1) {
@@ -29,7 +27,7 @@ export function buildEpicListKeyboard(epics: EpicLike[], page = 0) {
     ));
   }
 
-  return inlineKeyboard(rows);
+  return withPrimaryNavigation(rows, 'epics');
 }
 
 export function buildEpicSelectionKeyboard(epics: EpicLike[], purpose: string, page = 0) {
@@ -49,18 +47,15 @@ export function buildEpicSelectionKeyboard(epics: EpicLike[], purpose: string, p
 
   rows.push(cancelRow());
 
-  return inlineKeyboard(rows);
+  return withPrimaryNavigation(rows, 'epics');
 }
 
 export function buildEpicActionKeyboard(epicId: string) {
-  return inlineKeyboard([
-    [
-      Markup.button.callback('Update epic', `eu|${epicId}`),
-      Markup.button.callback('Delete epic', `ed|${epicId}`),
-    ],
+  return withPrimaryNavigation([
+    [Markup.button.callback('Delete epic', `ed|${epicId}`)],
     [
       Markup.button.callback('Create task in this epic', `tc|${epicId}`),
       Markup.button.callback('View tasks', `et|${epicId}`),
     ],
-  ]);
+  ], 'epics');
 }

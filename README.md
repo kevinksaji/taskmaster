@@ -1,6 +1,6 @@
 # Taskmaster
 
-Taskmaster is a production-ready Telegram bot for managing Scrum-style epics and tasks entirely inside Telegram. It uses slash commands, a persistent two-button navigation keyboard, inline action menus, and a webhook-first architecture that works consistently in local development and on Vercel.
+Taskmaster is a production-ready Telegram bot for managing Scrum-style epics and tasks entirely inside Telegram. It uses slash commands, inline Tasks and Epics navigation buttons, compact action menus, and a webhook-first architecture that works consistently in local development and on Vercel.
 
 ## Project overview
 
@@ -8,9 +8,9 @@ Taskmaster lets each Telegram user manage their own backlog without memorising I
 
 Core capabilities:
 
-- Epic CRUD with confirmation for deletes
-- Task CRUD with status tracking
-- Persistent `Tasks` and `Epics` reply-keyboard shortcuts for low-clutter navigation
+- Epic create, view, and delete flows
+- Task create, view, and delete flows
+- Inline `Tasks` and `Epics` navigation buttons for low-clutter navigation
 - Todo, done, overdue, and today task filters
 - Durable multi-step flows backed by PostgreSQL through Prisma
 - Stateless webhook processing for Vercel serverless deployment
@@ -147,22 +147,18 @@ This clears the registered Telegram webhook without dropping pending updates.
 
 ## Command list
 
-The persistent `Tasks` and `Epics` buttons open the main management hubs. Slash commands remain available for direct access and power-user workflows.
+The inline `Tasks` and `Epics` buttons open the main management hubs. Slash commands remain available for direct access and power-user workflows.
 
 - `/start`: Welcome message, command list, and examples
 - `/help`: Command reference and usage examples
 - `/epics`: List all epics with quick actions
 - `/epic_create`: Create an epic in a guided flow
 - `/epic_view`: Select an epic via inline buttons and inspect it
-- `/epic_update`: Select an epic and update its name
-- `/epic_delete`: Select an epic and confirm or cascade delete
+- `/epic_delete`: Select an epic and delete it
 - `/tasks`: List tasks, optionally filtered by `todo`, `done`, `overdue`, or `today`
 - `/task_create`: Create a task in a guided flow
 - `/task_view`: Select a task via inline buttons and inspect it
-- `/task_update`: Select a task and update name, epic, due date, or status
-- `/task_delete`: Select a task and confirm deletion
-- `/task_done`: Select a todo task and mark it done
-- `/task_undone`: Select a done task and mark it todo again
+- `/task_delete`: Select a task and delete it
 - `/cancel`: Cancel the active multi-step flow
 
 ## Example user flows
@@ -180,13 +176,6 @@ The persistent `Tasks` and `Epics` buttons open the main management hubs. Slash 
 3. Bot asks the user to pick an epic with inline buttons
 4. Bot asks for a due date or `skip`
 5. Bot stores the task and shows follow-up buttons
-
-### Update a task status
-
-1. User sends `/task_done` or `/task_undone`
-2. Bot shows matching tasks as buttons
-3. User picks a task
-4. Bot persists the status and returns an updated summary
 
 ## Date handling
 

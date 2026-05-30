@@ -22,11 +22,6 @@ export function registerEpicCommands(bot: Telegraf) {
     await botReplies.showEpicSelection(ctx, identity.userId, EPIC_PURPOSE.VIEW);
   }));
 
-  bot.command('epic_update', withErrorHandling(async (ctx) => {
-    const identity = getIdentity(ctx);
-    await botReplies.showEpicSelection(ctx, identity.userId, EPIC_PURPOSE.UPDATE);
-  }));
-
   bot.command('epic_delete', withErrorHandling(async (ctx) => {
     const identity = getIdentity(ctx);
     await botReplies.showEpicSelection(ctx, identity.userId, EPIC_PURPOSE.DELETE);
