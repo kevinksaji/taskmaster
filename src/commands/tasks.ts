@@ -1,33 +1,24 @@
 import { Telegraf } from 'telegraf';
 
 import { botReplies } from '../bot/replies';
+import { buildTasksFlowKeyboard } from '../keyboards/navigation';
 import { withErrorHandling } from '../middleware/withErrorHandling';
-import { parseTaskFilter } from '../types/domain';
-import { getCommandArgument, getIdentity } from '../utils/telegram';
-import { TASK_PURPOSE } from '../utils/callback-data';
+import { conversationService } from '../services/conversationService';
+import { getIdentity } from '../utils/telegram';
 import { startTaskCreateFlow } from '../scenes/flowStarters';
 
 export function registerTaskCommands(bot: Telegraf) {
   bot.command('tasks', withErrorHandling(async (ctx) => {
     const identity = getIdentity(ctx);
-    const messageText = ctx.message && 'text' in ctx.message ? ctx.message.text : undefined;
-    const argument = getCommandArgument(messageText);
-    const filter = parseTaskFilter(argument);
-    await botReplies.showTasksList(ctx, identity.userId, filter);
+    await conversationService.clearFlow(identity.userId);
+    await ctx.reply('📝 Tasks', {
+      reply_markup: buildTasksFlowKeyboard(),
+    });
+    await botReplies.showTasksList(ctx, identity.userId, 'all');
   }));
 
   bot.command('task_create', withErrorHandling(async (ctx) => {
     const identity = getIdentity(ctx);
     await startTaskCreateFlow(ctx, identity);
-  }));
-
-  bot.command('task_view', withErrorHandling(async (ctx) => {
-    const identity = getIdentity(ctx);
-    await botReplies.showTaskSelection(ctx, identity.userId, TASK_PURPOSE.VIEW, 'all');
-  }));
-
-  bot.command('task_delete', withErrorHandling(async (ctx) => {
-    const identity = getIdentity(ctx);
-    await botReplies.showTaskSelection(ctx, identity.userId, TASK_PURPOSE.DELETE, 'all');
   }));
 }

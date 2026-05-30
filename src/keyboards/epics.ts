@@ -13,7 +13,7 @@ type EpicLike = {
 export function buildEpicListKeyboard(epics: EpicLike[], page = 0) {
   const slice = paginate(epics, page);
   const rows = slice.items.flatMap((epic) => [
-    [Markup.button.callback(`📘 ${epic.name}`, `ev|${epic.id}`)],
+    [Markup.button.callback(`📘 ${epic.name}`, `et|${epic.id}`)],
     [Markup.button.callback('Delete', `ed|${epic.id}`)],
   ]);
 
@@ -49,16 +49,6 @@ export function buildEpicSelectionKeyboard(epics: EpicLike[], purpose: string, p
   rows.push(cancelRow());
 
   return inlineKeyboard(rows);
-}
-
-export function buildEpicActionKeyboard(epicId: string) {
-  return inlineKeyboard([
-    [Markup.button.callback('Delete epic', `ed|${epicId}`)],
-    [
-      Markup.button.callback('Create task in this epic', `tc|${epicId}`),
-      Markup.button.callback('View tasks', `et|${epicId}`),
-    ],
-  ]);
 }
 
 export function buildEpicCreateKeyboard() {

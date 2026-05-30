@@ -1,13 +1,13 @@
 import { Context } from 'telegraf';
 import { InlineKeyboardMarkup } from 'telegraf/types';
 
-import { buildEpicActionKeyboard, buildEpicCreateKeyboard, buildEpicListKeyboard, buildEpicSelectionKeyboard } from '../keyboards/epics';
-import { buildTaskActionKeyboard, buildTaskCreateKeyboard, buildTaskListKeyboard, buildTaskSelectionKeyboard } from '../keyboards/tasks';
+import { buildEpicCreateKeyboard, buildEpicListKeyboard, buildEpicSelectionKeyboard } from '../keyboards/epics';
+import { buildTaskActionKeyboard, buildTaskCreateKeyboard, buildTaskListKeyboard } from '../keyboards/tasks';
 import { epicService } from '../services/epicService';
 import { taskService } from '../services/taskService';
 import { TaskFilter } from '../types/domain';
-import { EPIC_PURPOSE, TASK_PURPOSE } from '../utils/callback-data';
-import { formatEpicDetails, formatEpicList, formatTaskDetails, formatTaskList } from '../utils/formatters';
+import { EPIC_PURPOSE } from '../utils/callback-data';
+import { formatEpicList, formatTaskDetails, formatTaskList } from '../utils/formatters';
 
 async function sendOrEdit(ctx: Context, text: string, replyMarkup?: InlineKeyboardMarkup, replace = false) {
   if (replace && 'editMessageText' in ctx && typeof ctx.editMessageText === 'function') {
@@ -32,6 +32,11 @@ async function sendOrEdit(ctx: Context, text: string, replyMarkup?: InlineKeyboa
 export const botReplies = {
   async showEpicsList(ctx: Context, telegramUserId: string, page = 0, replace = false) {
     const epics = await epicService.listEpics(telegramUserId);
+    if (epics.length === 0) {
+      await sendOrEdit(ctx, '📭 No epics found yet.', buildEpicCreateKeyboard(), replace);
+      return;
+    }
+
     await sendOrEdit(ctx, formatEpicList(epics), buildEpicListKeyboard(epics, page), replace);
   },
 
@@ -49,11 +54,6 @@ export const botReplies = {
     await sendOrEdit(ctx, prompt, buildEpicSelectionKeyboard(epics, purpose, page), replace);
   },
 
-  async showEpicDetails(ctx: Context, telegramUserId: string, epicId: string, replace = false) {
-    const details = await epicService.getEpicDetails(telegramUserId, epicId);
-    await sendOrEdit(ctx, formatEpicDetails(details), buildEpicActionKeyboard(epicId), replace);
-  },
-
   async showTasksList(ctx: Context, telegramUserId: string, filter: TaskFilter, page = 0, replace = false) {
     const tasks = await taskService.listTasks(telegramUserId, filter);
     await sendOrEdit(ctx, formatTaskList(tasks, filter), buildTaskListKeyboard(tasks, filter, page), replace);
@@ -64,24 +64,8 @@ export const botReplies = {
     await sendOrEdit(ctx, formatTaskList(details.tasks, details.epic.name), buildTaskListKeyboard(details.tasks, 'all', 0), replace);
   },
 
-  async showTaskSelection(ctx: Context, telegramUserId: string, purpose: string, filter: TaskFilter, page = 0, replace = false) {
-    const tasks = await taskService.listTasks(telegramUserId, filter);
-    if (tasks.length === 0) {
-      await sendOrEdit(ctx, '📭 No matching tasks found.', buildTaskCreateKeyboard(), replace);
-      return;
-    }
-
-    const prompt = purpose === TASK_PURPOSE.DONE
-      ? 'Choose a task to mark done:'
-      : purpose === TASK_PURPOSE.UNDONE
-        ? 'Choose a task to mark todo again:'
-        : 'Choose a task:';
-
-    await sendOrEdit(ctx, prompt, buildTaskSelectionKeyboard(tasks, purpose, filter, page), replace);
-  },
-
   async showTaskDetails(ctx: Context, telegramUserId: string, taskId: string, replace = false) {
     const task = await taskService.getTaskOrThrow(telegramUserId, taskId);
-    await sendOrEdit(ctx, formatTaskDetails(task), buildTaskActionKeyboard(task.id, task.epicId), replace);
+    await sendOrEdit(ctx, formatTaskDetails(task), buildTaskActionKeyboard(task.id, task.status), replace);
   },
 };
