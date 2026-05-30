@@ -69,23 +69,3 @@ export async function deleteCurrentMessage(ctx: Context) {
     return false;
   }
 }
-
-export async function dismissReplyKeyboard(ctx: Context) {
-  if (!ctx.chat) {
-    return;
-  }
-
-  try {
-    const cleanupMessage = await ctx.reply('\u2060', {
-      reply_markup: {
-        remove_keyboard: true,
-      },
-    });
-
-    await ctx.telegram.deleteMessage(ctx.chat.id, cleanupMessage.message_id);
-  } catch (error) {
-    logger.warn('telegram.reply_keyboard.dismiss_failed', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
-}

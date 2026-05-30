@@ -38,9 +38,6 @@ export async function handleCallbackQuery(ctx: Context) {
       case 'nt':
         await startTaskCreateFlow(ctx, identity);
         return;
-      case 'nh':
-        await handleNavigationHubAction(ctx, identity.userId, String(arg1 ?? ''), String(arg2 ?? ''));
-        return;
       case 'el':
         await botReplies.showEpicsList(ctx, identity.userId, Number(arg1 ?? '0'), true);
         return;
@@ -125,48 +122,6 @@ async function handleEpicSelection(ctx: Context, userId: string, chatId: string,
     default:
       throw new UserFacingError('That button expired. Please run the command again.');
   }
-}
-
-async function handleNavigationHubAction(ctx: Context, userId: string, section: string, action: string) {
-  if (section === 'tasks') {
-    switch (action) {
-      case 'hub':
-        await botReplies.showTaskHub(ctx, true);
-        return;
-      case 'list':
-        await botReplies.showTasksList(ctx, userId, 'all', 0, true);
-        return;
-      case 'create':
-        await startTaskCreateFlow(ctx, getIdentity(ctx));
-        return;
-      case 'delete':
-        await botReplies.showTaskSelection(ctx, userId, TASK_PURPOSE.DELETE, 'all', 0, true);
-        return;
-      default:
-        throw new UserFacingError('That task action is no longer available.');
-    }
-  }
-
-  if (section === 'epics') {
-    switch (action) {
-      case 'hub':
-        await botReplies.showEpicHub(ctx, true);
-        return;
-      case 'list':
-        await botReplies.showEpicsList(ctx, userId, 0, true);
-        return;
-      case 'create':
-        await startEpicCreateFlow(ctx, getIdentity(ctx));
-        return;
-      case 'delete':
-        await botReplies.showEpicSelection(ctx, userId, EPIC_PURPOSE.DELETE, 0, true);
-        return;
-      default:
-        throw new UserFacingError('That epic action is no longer available.');
-    }
-  }
-
-  throw new UserFacingError('That navigation action is no longer available.');
 }
 
 async function handleTaskSelection(ctx: Context, userId: string, _chatId: string, purpose: string, taskId: string) {

@@ -3,7 +3,6 @@ import { Markup } from 'telegraf';
 import { paginate } from '../utils/pagination';
 import { epicListNavData, epicSelectionData, epicSelectionNavData } from '../utils/callback-data';
 import { cancelRow, inlineKeyboard, paginationRow } from './common';
-import { withPrimaryNavigation } from './navigation';
 
 type EpicLike = {
   id: string;
@@ -27,7 +26,7 @@ export function buildEpicListKeyboard(epics: EpicLike[], page = 0) {
     ));
   }
 
-  return withPrimaryNavigation(rows, 'epics');
+  return inlineKeyboard(rows);
 }
 
 export function buildEpicSelectionKeyboard(epics: EpicLike[], purpose: string, page = 0) {
@@ -47,15 +46,15 @@ export function buildEpicSelectionKeyboard(epics: EpicLike[], purpose: string, p
 
   rows.push(cancelRow());
 
-  return withPrimaryNavigation(rows, 'epics');
+  return inlineKeyboard(rows);
 }
 
 export function buildEpicActionKeyboard(epicId: string) {
-  return withPrimaryNavigation([
+  return inlineKeyboard([
     [Markup.button.callback('Delete epic', `ed|${epicId}`)],
     [
       Markup.button.callback('Create task in this epic', `tc|${epicId}`),
       Markup.button.callback('View tasks', `et|${epicId}`),
     ],
-  ], 'epics');
+  ]);
 }

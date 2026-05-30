@@ -9,7 +9,6 @@ import {
 } from '../utils/callback-data';
 import { paginate } from '../utils/pagination';
 import { cancelRow, inlineKeyboard, paginationRow } from './common';
-import { withPrimaryNavigation } from './navigation';
 
 type TaskLike = {
   id: string;
@@ -33,7 +32,7 @@ export function buildTaskListKeyboard(tasks: TaskLike[], filter: TaskFilter, pag
     ));
   }
 
-  return withPrimaryNavigation(rows, 'tasks');
+  return inlineKeyboard(rows);
 }
 
 export function buildTaskSelectionKeyboard(tasks: TaskLike[], purpose: string, filter: TaskFilter, page = 0) {
@@ -56,16 +55,16 @@ export function buildTaskSelectionKeyboard(tasks: TaskLike[], purpose: string, f
 
   rows.push(cancelRow());
 
-  return withPrimaryNavigation(rows, 'tasks');
+  return inlineKeyboard(rows);
 }
 
 export function buildTaskActionKeyboard(taskId: string, epicId: string) {
-  return withPrimaryNavigation([
+  return inlineKeyboard([
     [
       Markup.button.callback('Delete task', `tx|${taskId}`),
       Markup.button.callback('View epic', `ev|${epicId}`),
     ],
-  ], 'tasks');
+  ]);
 }
 
 export function buildTaskUpdateFieldKeyboard() {
