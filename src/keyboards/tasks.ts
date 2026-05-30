@@ -32,6 +32,8 @@ export function buildTaskListKeyboard(tasks: TaskLike[], filter: TaskFilter, pag
     ));
   }
 
+  rows.push([Markup.button.callback('Create task', 'nt')]);
+
   return inlineKeyboard(rows);
 }
 
@@ -64,6 +66,12 @@ export function buildTaskActionKeyboard(taskId: string, epicId: string) {
       Markup.button.callback('Delete task', `tx|${taskId}`),
       Markup.button.callback('View epic', `ev|${epicId}`),
     ],
+  ]);
+}
+
+export function buildTaskCreateKeyboard() {
+  return inlineKeyboard([
+    [Markup.button.callback('Create task', 'nt')],
   ]);
 }
 

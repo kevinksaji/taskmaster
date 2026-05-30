@@ -1,8 +1,8 @@
 import { Context } from 'telegraf';
 import { InlineKeyboardMarkup } from 'telegraf/types';
 
-import { buildEpicActionKeyboard, buildEpicListKeyboard, buildEpicSelectionKeyboard } from '../keyboards/epics';
-import { buildTaskActionKeyboard, buildTaskListKeyboard, buildTaskSelectionKeyboard } from '../keyboards/tasks';
+import { buildEpicActionKeyboard, buildEpicCreateKeyboard, buildEpicListKeyboard, buildEpicSelectionKeyboard } from '../keyboards/epics';
+import { buildTaskActionKeyboard, buildTaskCreateKeyboard, buildTaskListKeyboard, buildTaskSelectionKeyboard } from '../keyboards/tasks';
 import { epicService } from '../services/epicService';
 import { taskService } from '../services/taskService';
 import { TaskFilter } from '../types/domain';
@@ -38,7 +38,7 @@ export const botReplies = {
   async showEpicSelection(ctx: Context, telegramUserId: string, purpose: string, page = 0, replace = false) {
     const epics = await epicService.listEpics(telegramUserId);
     if (epics.length === 0) {
-      await sendOrEdit(ctx, '📭 No epics found yet. Use /epic_create to add one first.', undefined, replace);
+      await sendOrEdit(ctx, '📭 No epics found yet.', buildEpicCreateKeyboard(), replace);
       return;
     }
 
@@ -67,7 +67,7 @@ export const botReplies = {
   async showTaskSelection(ctx: Context, telegramUserId: string, purpose: string, filter: TaskFilter, page = 0, replace = false) {
     const tasks = await taskService.listTasks(telegramUserId, filter);
     if (tasks.length === 0) {
-      await sendOrEdit(ctx, '📭 No matching tasks found.', undefined, replace);
+      await sendOrEdit(ctx, '📭 No matching tasks found.', buildTaskCreateKeyboard(), replace);
       return;
     }
 
