@@ -60,7 +60,6 @@ export const taskRepository = {
 
   create(data: {
     name: string;
-    description: string | null;
     dueDate: Date | null;
     epicId: string;
     telegramUserId: string;
@@ -74,7 +73,6 @@ export const taskRepository = {
 
   update(id: string, telegramUserId: string, data: {
     name?: string;
-    description?: string | null;
     dueDate?: Date | null;
     epicId?: string;
     status?: TaskStatus;

@@ -5,30 +5,16 @@ import { formatDate, isOverdue } from './date';
 type EpicSummaryInput = {
   id: string;
   name: string;
-  description: string | null;
   _count?: { tasks: number };
 };
 
 type TaskSummaryInput = {
   id: string;
   name: string;
-  description: string | null;
   dueDate: Date | null;
   status: TaskStatus;
   epic: { id: string; name: string };
 };
-
-function compactDescription(description: string | null | undefined): string {
-  if (!description) {
-    return 'No description';
-  }
-
-  if (description.length <= 90) {
-    return description;
-  }
-
-  return `${description.slice(0, 87)}...`;
-}
 
 export function formatEpicList(epics: EpicSummaryInput[]): string {
   if (epics.length === 0) {
@@ -39,9 +25,8 @@ export function formatEpicList(epics: EpicSummaryInput[]): string {
     '📚 Your epics',
     '',
     ...epics.map((epic, index) => {
-      const description = epic.description ? `\n${compactDescription(epic.description)}` : '';
       const taskCount = epic._count?.tasks ?? 0;
-      return `${index + 1}. ${epic.name}\nTasks: ${taskCount}${description}`;
+      return `${index + 1}. ${epic.name}\nTasks: ${taskCount}`;
     }),
   ].join('\n\n');
 }
@@ -53,7 +38,6 @@ export function formatEpicDetails(input: {
 }): string {
   const lines = [
     `📘 ${input.epic.name}`,
-    input.epic.description ? `Description: ${input.epic.description}` : 'Description: None',
     `Tasks: ${input.counts.total} total`,
     `Todo: ${input.counts.todo}`,
     `Done: ${input.counts.done}`,
@@ -100,6 +84,5 @@ export function formatTaskDetails(task: TaskSummaryInput): string {
     `Status: ${formatTaskStatus(task.status)}`,
     `Due date: ${formatDate(task.dueDate)}`,
     `Overdue: ${overdue}`,
-    `Description: ${task.description ?? 'None'}`,
   ].join('\n');
 }

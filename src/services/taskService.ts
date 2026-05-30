@@ -4,7 +4,7 @@ import { epicRepository } from '../repositories/epicRepository';
 import { taskRepository } from '../repositories/taskRepository';
 import { TaskFilter } from '../types/domain';
 import { UserFacingError } from '../utils/errors';
-import { descriptionSchema, taskNameSchema } from '../utils/validation';
+import { taskNameSchema } from '../utils/validation';
 
 export const taskService = {
   listTasks(telegramUserId: string, filter: TaskFilter) {
@@ -32,18 +32,15 @@ export const taskService = {
   async createTask(input: {
     telegramUserId: string;
     name: string;
-    description: string | null;
     dueDate: Date | null;
     epicId: string;
   }) {
     const name = taskNameSchema.parse(input.name);
-    const description = input.description === null ? null : descriptionSchema.parse(input.description);
     await this.ensureEpicOwnership(input.telegramUserId, input.epicId);
 
     return taskRepository.create({
       telegramUserId: input.telegramUserId,
       name,
-      description,
       dueDate: input.dueDate,
       epicId: input.epicId,
       status: TaskStatus.TODO,
@@ -54,7 +51,6 @@ export const taskService = {
     telegramUserId: string;
     taskId: string;
     name?: string;
-    description?: string | null;
     dueDate?: Date | null;
     epicId?: string;
     status?: TaskStatus;
@@ -67,7 +63,6 @@ export const taskService = {
 
     const data: {
       name?: string;
-      description?: string | null;
       dueDate?: Date | null;
       epicId?: string;
       status?: TaskStatus;
@@ -75,10 +70,6 @@ export const taskService = {
 
     if (typeof input.name === 'string') {
       data.name = taskNameSchema.parse(input.name);
-    }
-
-    if (Object.prototype.hasOwnProperty.call(input, 'description')) {
-      data.description = input.description === null ? null : descriptionSchema.parse(input.description ?? '');
     }
 
     if (Object.prototype.hasOwnProperty.call(input, 'dueDate')) {

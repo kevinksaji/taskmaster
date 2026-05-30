@@ -151,12 +151,12 @@ This clears the registered Telegram webhook without dropping pending updates.
 - `/epics`: List all epics with quick actions
 - `/epic_create`: Create an epic in a guided flow
 - `/epic_view`: Select an epic via inline buttons and inspect it
-- `/epic_update`: Select an epic and update name or description
+- `/epic_update`: Select an epic and update its name
 - `/epic_delete`: Select an epic and confirm or cascade delete
 - `/tasks`: List tasks, optionally filtered by `todo`, `done`, `overdue`, or `today`
 - `/task_create`: Create a task in a guided flow
 - `/task_view`: Select a task via inline buttons and inspect it
-- `/task_update`: Select a task and update name, epic, due date, description, or status
+- `/task_update`: Select a task and update name, epic, due date, or status
 - `/task_delete`: Select a task and confirm deletion
 - `/task_done`: Select a todo task and mark it done
 - `/task_undone`: Select a done task and mark it todo again
@@ -168,8 +168,7 @@ This clears the registered Telegram webhook without dropping pending updates.
 
 1. User sends `/epic_create`
 2. Bot asks for the epic name
-3. Bot asks for an optional description
-4. Bot stores the epic and shows follow-up buttons
+3. Bot stores the epic and shows follow-up buttons
 
 ### Create a task
 
@@ -177,8 +176,7 @@ This clears the registered Telegram webhook without dropping pending updates.
 2. Bot asks for the task name
 3. Bot asks the user to pick an epic with inline buttons
 4. Bot asks for a due date or `skip`
-5. Bot asks for a description or `skip`
-6. Bot stores the task and shows follow-up buttons
+5. Bot stores the task and shows follow-up buttons
 
 ### Update a task status
 

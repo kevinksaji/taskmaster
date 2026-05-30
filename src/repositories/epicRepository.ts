@@ -31,14 +31,14 @@ export const epicRepository = {
     });
   },
 
-  create(data: { telegramUserId: string; name: string; description: string | null }) {
+  create(data: { telegramUserId: string; name: string }) {
     return prisma.epic.create({
       data,
       include: { _count: { select: { tasks: true } } },
     });
   },
 
-  update(id: string, telegramUserId: string, data: { name?: string; description?: string | null }) {
+  update(id: string, telegramUserId: string, data: { name?: string }) {
     return prisma.epic.updateMany({
       where: { id, telegramUserId },
       data,

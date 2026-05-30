@@ -1,6 +1,5 @@
 import { Context } from 'telegraf';
 
-import { buildEpicUpdateFieldKeyboard } from '../keyboards/followups';
 import { buildTaskUpdateFieldKeyboard } from '../keyboards/tasks';
 import { conversationService } from '../services/conversationService';
 import { FlowType } from '../types/conversation';
@@ -17,10 +16,8 @@ export async function startTaskCreateFlow(ctx: Context, identity: TelegramIdenti
 }
 
 export async function startEpicUpdateFlow(ctx: Context, identity: TelegramIdentity, epicId: string) {
-  await conversationService.startFlow(identity.userId, identity.chatId, FlowType.EPIC_UPDATE, 'WAIT_FIELD', { epicId });
-  await ctx.reply('Choose what to update on this epic:', {
-    reply_markup: buildEpicUpdateFieldKeyboard(),
-  });
+  await conversationService.startFlow(identity.userId, identity.chatId, FlowType.EPIC_UPDATE, 'WAIT_NAME_VALUE', { epicId });
+  await ctx.reply('Send the new epic name.');
 }
 
 export async function startTaskUpdateFlow(ctx: Context, identity: TelegramIdentity, taskId: string) {

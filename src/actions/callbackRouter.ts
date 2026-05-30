@@ -2,7 +2,6 @@ import { TaskStatus } from '@prisma/client';
 import { Context } from 'telegraf';
 
 import { botReplies } from '../bot/replies';
-import { buildEpicUpdateFieldKeyboard } from '../keyboards/followups';
 import { buildStatusChoiceKeyboard, buildTaskActionKeyboard, buildTaskUpdateFieldKeyboard } from '../keyboards/tasks';
 import { conversationService } from '../services/conversationService';
 import { epicService } from '../services/epicService';
@@ -237,19 +236,17 @@ async function handleEpicUpdateField(ctx: Context, userId: string, chatId: strin
     throw new UserFacingError('That epic update flow expired. Start /epic_update again.');
   }
 
-  if (field !== 'name' && field !== 'description') {
+  if (field !== 'name') {
     throw new UserFacingError('Choose one of the available fields.');
   }
 
   await conversationService.updateFlow(userId, chatId, {
     flow: FlowType.EPIC_UPDATE,
-    step: field === 'name' ? 'WAIT_NAME_VALUE' : 'WAIT_DESCRIPTION_VALUE',
+    step: 'WAIT_NAME_VALUE',
     payload: state.payload,
   });
 
-  await ctx.reply(field === 'name' ? 'Send the new epic name.' : 'Send the new description, or type skip to clear it.', {
-    reply_markup: buildEpicUpdateFieldKeyboard(),
-  });
+  await ctx.reply('Send the new epic name.');
 }
 
 async function handleTaskUpdateField(ctx: Context, userId: string, chatId: string, field: string) {
@@ -283,7 +280,6 @@ async function handleTaskUpdateField(ctx: Context, userId: string, chatId: strin
   const nextStepMap: Record<string, string> = {
     name: 'WAIT_NAME_VALUE',
     dueDate: 'WAIT_DUE_DATE_VALUE',
-    description: 'WAIT_DESCRIPTION_VALUE',
   };
 
   const nextStep = nextStepMap[field];
@@ -300,7 +296,6 @@ async function handleTaskUpdateField(ctx: Context, userId: string, chatId: strin
   const promptByField: Record<string, string> = {
     name: 'Send the new task name.',
     dueDate: 'Send the new due date, or type skip to clear it.',
-    description: 'Send the new description, or type skip to clear it.',
   };
 
   const prompt = promptByField[field];
@@ -308,9 +303,7 @@ async function handleTaskUpdateField(ctx: Context, userId: string, chatId: strin
     throw new UserFacingError('Choose one of the available task fields.');
   }
 
-  await ctx.reply(prompt, {
-    reply_markup: buildTaskUpdateFieldKeyboard(),
-  });
+  await ctx.reply(prompt);
 }
 
 async function handleTaskUpdateStatus(ctx: Context, userId: string, statusValue: string) {
