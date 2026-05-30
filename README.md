@@ -7,6 +7,7 @@ Taskmaster is a production-ready Telegram bot for managing Scrum-style epics and
 Taskmaster lets each Telegram user manage their own backlog without memorising IDs. Users create epics such as `Things to buy for going overseas`, then add tasks like `Moisturiser` or `Wash the car` inside the right epic. All selection-heavy flows use inline buttons instead of asking users to type internal identifiers.
 
 Core capabilities:
+
 - Epic CRUD with confirmation for deletes
 - Task CRUD with status tracking
 - Todo, done, overdue, and today task filters
@@ -17,6 +18,7 @@ Core capabilities:
 ## Architecture summary
 
 The application follows a layered structure:
+
 - `src/commands`: Telegram slash command entrypoints
 - `src/actions`: Inline button callback router
 - `src/scenes`: Durable text-step flow handlers backed by Prisma conversation state
@@ -33,6 +35,7 @@ The bot is deliberately stateless at the process level. Multi-step flows are res
 ## Required environment variables
 
 Create a local `.env` file from `.env.example` and set:
+
 - `BOT_TOKEN`: Telegram bot token from BotFather
 - `TELEGRAM_WEBHOOK_SECRET`: Secret used for Telegram webhook header validation
 - `DATABASE_URL`: Neon PostgreSQL connection string
@@ -104,9 +107,11 @@ Create a local `.env` file from `.env.example` and set:
 ## Webhook behavior
 
 The webhook endpoint is:
+
 - `POST /api/telegram/webhook`
 
 Security behavior:
+
 - Only `POST` is accepted
 - `X-Telegram-Bot-Api-Secret-Token` must match `TELEGRAM_WEBHOOK_SECRET`
 - Invalid or missing webhook secret returns `403`
@@ -116,11 +121,13 @@ Security behavior:
 ## How to set Telegram webhook
 
 Use the provided helper script:
+
 ```bash
 npm run webhook:set
 ```
 
 What it does:
+
 - Targets `${APP_BASE_URL}/api/telegram/webhook`
 - Sends `secret_token` equal to `TELEGRAM_WEBHOOK_SECRET`
 - Enables `message` and `callback_query` updates
@@ -130,6 +137,7 @@ You can also set the webhook manually with Telegram Bot API if needed.
 ## How to delete Telegram webhook
 
 Use the provided helper script:
+
 ```bash
 npm run webhook:delete
 ```
@@ -157,12 +165,14 @@ This clears the registered Telegram webhook without dropping pending updates.
 ## Example user flows
 
 ### Create an epic
+
 1. User sends `/epic_create`
 2. Bot asks for the epic name
 3. Bot asks for an optional description
 4. Bot stores the epic and shows follow-up buttons
 
 ### Create a task
+
 1. User sends `/task_create`
 2. Bot asks for the task name
 3. Bot asks the user to pick an epic with inline buttons
@@ -171,6 +181,7 @@ This clears the registered Telegram webhook without dropping pending updates.
 6. Bot stores the task and shows follow-up buttons
 
 ### Update a task status
+
 1. User sends `/task_done` or `/task_undone`
 2. Bot shows matching tasks as buttons
 3. User picks a task
@@ -179,6 +190,7 @@ This clears the registered Telegram webhook without dropping pending updates.
 ## Date handling
 
 Taskmaster supports these due date inputs:
+
 - `2026-06-15`
 - `tomorrow`
 - `next monday`
@@ -190,6 +202,7 @@ Dates are normalised and stored in PostgreSQL through Prisma.
 ## Stateless webhook notes
 
 This project does not rely on in-memory Telegraf session storage. Instead:
+
 - Active conversation state is stored in the database
 - Each incoming webhook request can resume the next step independently
 - The same bot behavior works locally and in Vercel serverless functions
