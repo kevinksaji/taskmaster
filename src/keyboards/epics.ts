@@ -26,6 +26,8 @@ export function buildEpicListKeyboard(epics: EpicLike[], page = 0) {
     ));
   }
 
+  rows.push([Markup.button.callback('Create epic', 'ne')]);
+
   return inlineKeyboard(rows);
 }
 
@@ -56,5 +58,11 @@ export function buildEpicActionKeyboard(epicId: string) {
       Markup.button.callback('Create task in this epic', `tc|${epicId}`),
       Markup.button.callback('View tasks', `et|${epicId}`),
     ],
+  ]);
+}
+
+export function buildEpicCreateKeyboard() {
+  return inlineKeyboard([
+    [Markup.button.callback('Create epic', 'ne')],
   ]);
 }
