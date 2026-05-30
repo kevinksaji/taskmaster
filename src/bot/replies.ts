@@ -2,6 +2,7 @@ import { Context } from 'telegraf';
 import { InlineKeyboardMarkup } from 'telegraf/types';
 
 import { buildEpicActionKeyboard, buildEpicListKeyboard, buildEpicDeleteKeyboard, buildEpicSelectionKeyboard } from '../keyboards/epics';
+import { buildEpicHubKeyboard, buildTaskHubKeyboard } from '../keyboards/navigation';
 import { buildTaskActionKeyboard, buildTaskDeleteKeyboard, buildTaskListKeyboard, buildTaskSelectionKeyboard } from '../keyboards/tasks';
 import { epicService } from '../services/epicService';
 import { taskService } from '../services/taskService';
@@ -30,6 +31,24 @@ async function sendOrEdit(ctx: Context, text: string, replyMarkup?: InlineKeyboa
 }
 
 export const botReplies = {
+  async showTaskHub(ctx: Context, replace = false) {
+    await sendOrEdit(
+      ctx,
+      '🧰 Task tools\n\nPick the next action. Use the persistent Tasks and Epics buttons below any time.',
+      buildTaskHubKeyboard(),
+      replace,
+    );
+  },
+
+  async showEpicHub(ctx: Context, replace = false) {
+    await sendOrEdit(
+      ctx,
+      '📚 Epic tools\n\nPick the next action. Use the persistent Tasks and Epics buttons below any time.',
+      buildEpicHubKeyboard(),
+      replace,
+    );
+  },
+
   async showEpicsList(ctx: Context, telegramUserId: string, page = 0, replace = false) {
     const epics = await epicService.listEpics(telegramUserId);
     await sendOrEdit(ctx, formatEpicList(epics), buildEpicListKeyboard(epics, page), replace);

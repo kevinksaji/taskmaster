@@ -1,6 +1,7 @@
 import { Context } from 'telegraf';
 
 import { buildEpicCreatedKeyboard, buildTaskCreatedKeyboard } from '../keyboards/followups';
+import { PRIMARY_NAVIGATION_LABELS, buildPrimaryNavigationKeyboard } from '../keyboards/navigation';
 import { botReplies } from '../bot/replies';
 import { conversationService } from '../services/conversationService';
 import { epicService } from '../services/epicService';
@@ -24,6 +25,23 @@ export async function routeTextFlow(ctx: Context) {
   const identity = getIdentity(ctx);
   const state = await conversationService.getActiveState(identity.userId);
   if (!state) {
+    if (text === PRIMARY_NAVIGATION_LABELS.TASKS) {
+      await botReplies.showTaskHub(ctx);
+      return;
+    }
+
+    if (text === PRIMARY_NAVIGATION_LABELS.EPICS) {
+      await botReplies.showEpicHub(ctx);
+      return;
+    }
+
+    return;
+  }
+
+  if (text === PRIMARY_NAVIGATION_LABELS.TASKS || text === PRIMARY_NAVIGATION_LABELS.EPICS) {
+    await ctx.reply('Finish the current step or send /cancel before switching sections.', {
+      reply_markup: buildPrimaryNavigationKeyboard(),
+    });
     return;
   }
 
