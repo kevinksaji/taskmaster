@@ -151,14 +151,10 @@ The persistent `/tasks` and `/epics` buttons jump straight into the main command
 
 - `/start`: Welcome message, command list, and examples
 - `/help`: Command reference and usage examples
-- `/epics`: List all epics with quick actions
+- `/epics`: Open the epic flow
 - `/epic_create`: Create an epic in a guided flow
-- `/epic_view`: Select an epic via inline buttons and inspect it
-- `/epic_delete`: Select an epic and delete it
-- `/tasks`: List tasks, optionally filtered by `todo`, `done`, `overdue`, or `today`
+- `/tasks`: Open the task flow
 - `/task_create`: Create a task in a guided flow
-- `/task_view`: Select a task via inline buttons and inspect it
-- `/task_delete`: Select a task and delete it
 - `/cancel`: Cancel the active multi-step flow
 
 ## Example user flows

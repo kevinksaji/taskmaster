@@ -1,13 +1,13 @@
+import { TaskStatus } from '@prisma/client';
 import { Context } from 'telegraf';
 
 import { botReplies } from '../bot/replies';
-import { buildTaskActionKeyboard } from '../keyboards/tasks';
 import { conversationService } from '../services/conversationService';
 import { epicService } from '../services/epicService';
 import { taskService } from '../services/taskService';
 import { FlowType } from '../types/conversation';
-import { TaskFilter, parseTaskFilter } from '../types/domain';
-import { EPIC_PURPOSE, TASK_PURPOSE } from '../utils/callback-data';
+import { parseTaskFilter } from '../types/domain';
+import { EPIC_PURPOSE } from '../utils/callback-data';
 import { UserFacingError } from '../utils/errors';
 import { logger } from '../utils/logger';
 import { answerCallback, deleteCurrentMessage, getIdentity } from '../utils/telegram';
@@ -47,9 +47,6 @@ export async function handleCallbackQuery(ctx: Context) {
       case 'es':
         await handleEpicSelection(ctx, identity.userId, identity.chatId, String(arg1 ?? ''), String(arg2 ?? ''));
         return;
-      case 'ev':
-        await botReplies.showEpicDetails(ctx, identity.userId, String(arg1 ?? ''), true);
-        return;
       case 'ed':
         await handleEpicDelete(ctx, identity.userId, String(arg1 ?? ''));
         return;
@@ -59,16 +56,11 @@ export async function handleCallbackQuery(ctx: Context) {
       case 'tl':
         await botReplies.showTasksList(ctx, identity.userId, parseTaskFilter(arg1), Number(arg2 ?? '0'), true);
         return;
-      case 'tp':
-        await botReplies.showTaskSelection(ctx, identity.userId, String(arg1 ?? ''), parseTaskFilter(arg2), Number(arg3 ?? '0'), true);
-        return;
-      case 'tf':
-        await botReplies.showTaskSelection(ctx, identity.userId, String(arg1 ?? ''), parseTaskFilter(arg2), 0, true);
-        return;
-      case 'ts':
-        await handleTaskSelection(ctx, identity.userId, identity.chatId, String(arg1 ?? ''), String(arg2 ?? ''));
-        return;
       case 'tv':
+        await botReplies.showTaskDetails(ctx, identity.userId, String(arg1 ?? ''), true);
+        return;
+      case 'tt':
+        await taskService.setTaskStatus(identity.userId, String(arg1 ?? ''), TaskStatus.DONE);
         await botReplies.showTaskDetails(ctx, identity.userId, String(arg1 ?? ''), true);
         return;
       case 'tx':
@@ -96,12 +88,6 @@ export async function handleCallbackQuery(ctx: Context) {
 
 async function handleEpicSelection(ctx: Context, userId: string, chatId: string, purpose: string, epicId: string) {
   switch (purpose) {
-    case EPIC_PURPOSE.VIEW:
-      await botReplies.showEpicDetails(ctx, userId, epicId, true);
-      return;
-    case EPIC_PURPOSE.DELETE:
-      await handleEpicDelete(ctx, userId, epicId);
-      return;
     case EPIC_PURPOSE.TASK_CREATE: {
       const state = await conversationService.getActiveState(userId);
       if (!state || state.flow !== FlowType.TASK_CREATE) {
@@ -124,19 +110,6 @@ async function handleEpicSelection(ctx: Context, userId: string, chatId: string,
   }
 }
 
-async function handleTaskSelection(ctx: Context, userId: string, _chatId: string, purpose: string, taskId: string) {
-  switch (purpose) {
-    case TASK_PURPOSE.VIEW:
-      await botReplies.showTaskDetails(ctx, userId, taskId, true);
-      return;
-    case TASK_PURPOSE.DELETE:
-      await handleTaskDelete(ctx, userId, taskId);
-      return;
-    default:
-      throw new UserFacingError('That button expired. Please run the command again.');
-  }
-}
-
 async function handleEpicDelete(ctx: Context, userId: string, epicId: string) {
   const deleted = await epicService.deleteEpic({
     telegramUserId: userId,
@@ -145,7 +118,7 @@ async function handleEpicDelete(ctx: Context, userId: string, epicId: string) {
   });
 
   await hideDeletedEntity(ctx, deleted.epic.id, {
-    listPrefix: `ev|${deleted.epic.id}`,
+    listPrefix: `et|${deleted.epic.id}`,
     selectionPrefix: `es|`,
     detailActionPrefix: `ed|${deleted.epic.id}`,
   });
