@@ -10,7 +10,7 @@ import { FlowType } from '../types/conversation';
 import { EPIC_PURPOSE } from '../utils/callback-data';
 import { parseHumanDate } from '../utils/date';
 import { formatEpicDetails, formatTaskDetails } from '../utils/formatters';
-import { getIdentity, isCommandText } from '../utils/telegram';
+import { deleteCurrentMessage, getIdentity, isCommandText } from '../utils/telegram';
 
 export async function routeTextFlow(ctx: Context) {
   if (!('message' in ctx) || !ctx.message || !('text' in ctx.message)) {
@@ -26,11 +26,13 @@ export async function routeTextFlow(ctx: Context) {
   const state = await conversationService.getActiveState(identity.userId);
   if (!state) {
     if (text === PRIMARY_NAVIGATION_LABELS.TASKS) {
+      await deleteCurrentMessage(ctx);
       await botReplies.showTaskHub(ctx);
       return;
     }
 
     if (text === PRIMARY_NAVIGATION_LABELS.EPICS) {
+      await deleteCurrentMessage(ctx);
       await botReplies.showEpicHub(ctx);
       return;
     }
@@ -39,6 +41,7 @@ export async function routeTextFlow(ctx: Context) {
   }
 
   if (text === PRIMARY_NAVIGATION_LABELS.TASKS || text === PRIMARY_NAVIGATION_LABELS.EPICS) {
+    await deleteCurrentMessage(ctx);
     await ctx.reply('Finish the current step or send /cancel before switching sections.', {
       reply_markup: buildPrimaryNavigationKeyboard(),
     });

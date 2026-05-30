@@ -1,9 +1,9 @@
 import { Context } from 'telegraf';
 import { InlineKeyboardMarkup } from 'telegraf/types';
 
-import { buildEpicActionKeyboard, buildEpicListKeyboard, buildEpicDeleteKeyboard, buildEpicSelectionKeyboard } from '../keyboards/epics';
+import { buildEpicActionKeyboard, buildEpicListKeyboard, buildEpicSelectionKeyboard } from '../keyboards/epics';
 import { buildEpicHubKeyboard, buildTaskHubKeyboard } from '../keyboards/navigation';
-import { buildTaskActionKeyboard, buildTaskDeleteKeyboard, buildTaskListKeyboard, buildTaskSelectionKeyboard } from '../keyboards/tasks';
+import { buildTaskActionKeyboard, buildTaskListKeyboard, buildTaskSelectionKeyboard } from '../keyboards/tasks';
 import { epicService } from '../services/epicService';
 import { taskService } from '../services/taskService';
 import { TaskFilter } from '../types/domain';
@@ -73,15 +73,6 @@ export const botReplies = {
     await sendOrEdit(ctx, formatEpicDetails(details), buildEpicActionKeyboard(epicId), replace);
   },
 
-  async showEpicDeleteConfirmation(ctx: Context, telegramUserId: string, epicId: string, replace = false) {
-    const details = await epicService.getEpicDetails(telegramUserId, epicId);
-    const text = details.tasks.length > 0
-      ? `⚠️ ${details.epic.name} still has ${details.tasks.length} task(s). Cascade delete the epic and its tasks?`
-      : `⚠️ Delete epic "${details.epic.name}"? This cannot be undone.`;
-
-    await sendOrEdit(ctx, text, buildEpicDeleteKeyboard(epicId, details.tasks.length > 0), replace);
-  },
-
   async showTasksList(ctx: Context, telegramUserId: string, filter: TaskFilter, page = 0, replace = false) {
     const tasks = await taskService.listTasks(telegramUserId, filter);
     await sendOrEdit(ctx, formatTaskList(tasks, filter), buildTaskListKeyboard(tasks, filter, page), replace);
@@ -111,15 +102,5 @@ export const botReplies = {
   async showTaskDetails(ctx: Context, telegramUserId: string, taskId: string, replace = false) {
     const task = await taskService.getTaskOrThrow(telegramUserId, taskId);
     await sendOrEdit(ctx, formatTaskDetails(task), buildTaskActionKeyboard(task.id, task.status, task.epicId), replace);
-  },
-
-  async showTaskDeleteConfirmation(ctx: Context, telegramUserId: string, taskId: string, replace = false) {
-    const task = await taskService.getTaskOrThrow(telegramUserId, taskId);
-    await sendOrEdit(
-      ctx,
-      `⚠️ Delete task "${task.name}" from ${task.epic.name}? This cannot be undone.`,
-      buildTaskDeleteKeyboard(taskId),
-      replace,
-    );
   },
 };
