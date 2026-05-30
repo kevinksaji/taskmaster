@@ -26,23 +26,8 @@ export function registerTaskCommands(bot: Telegraf) {
     await botReplies.showTaskSelection(ctx, identity.userId, TASK_PURPOSE.VIEW, 'all');
   }));
 
-  bot.command('task_update', withErrorHandling(async (ctx) => {
-    const identity = getIdentity(ctx);
-    await botReplies.showTaskSelection(ctx, identity.userId, TASK_PURPOSE.UPDATE, 'all');
-  }));
-
   bot.command('task_delete', withErrorHandling(async (ctx) => {
     const identity = getIdentity(ctx);
     await botReplies.showTaskSelection(ctx, identity.userId, TASK_PURPOSE.DELETE, 'all');
-  }));
-
-  bot.command('task_done', withErrorHandling(async (ctx) => {
-    const identity = getIdentity(ctx);
-    await botReplies.showTaskSelection(ctx, identity.userId, TASK_PURPOSE.DONE, 'todo');
-  }));
-
-  bot.command('task_undone', withErrorHandling(async (ctx) => {
-    const identity = getIdentity(ctx);
-    await botReplies.showTaskSelection(ctx, identity.userId, TASK_PURPOSE.UNDONE, 'done');
   }));
 }

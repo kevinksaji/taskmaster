@@ -2,7 +2,8 @@ import { Telegraf } from 'telegraf';
 
 import { buildPrimaryNavigationKeyboard } from '../keyboards/navigation';
 import { withErrorHandling } from '../middleware/withErrorHandling';
-import { getIdentity } from '../utils/telegram';
+import { conversationService } from '../services/conversationService';
+import { dismissReplyKeyboard, getIdentity } from '../utils/telegram';
 
 const startMessage = [
   '👋 Welcome to Taskmaster.',
@@ -17,19 +18,21 @@ const startMessage = [
   '• Epic: Pending tasks',
   '• Task: Wash the car under that epic',
   '',
-  'Use the floating Tasks and Epics buttons for the main management hubs.',
+  'Use the Tasks and Epics buttons below for the main management hubs.',
   '',
   'You never need to memorise IDs. When selection is needed, I will show inline buttons.',
   '',
   'Commands:',
-  '/epics, /epic_create, /epic_view, /epic_update, /epic_delete',
-  '/tasks, /task_create, /task_view, /task_update, /task_delete',
-  '/task_done, /task_undone, /cancel, /help',
+  '/epics, /epic_create, /epic_view, /epic_delete',
+  '/tasks, /task_create, /task_view, /task_delete',
+  '/cancel, /help',
 ].join('\n');
 
 export function registerStartCommand(bot: Telegraf) {
   bot.start(withErrorHandling(async (ctx) => {
-    getIdentity(ctx);
+    const identity = getIdentity(ctx);
+    await conversationService.clearFlow(identity.userId);
+    await dismissReplyKeyboard(ctx);
     await ctx.reply(startMessage, {
       reply_markup: buildPrimaryNavigationKeyboard(),
     });

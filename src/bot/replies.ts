@@ -34,7 +34,7 @@ export const botReplies = {
   async showTaskHub(ctx: Context, replace = false) {
     await sendOrEdit(
       ctx,
-      '🧰 Task tools\n\nPick the next action. Use the persistent Tasks and Epics buttons below any time.',
+      '🧰 Task tools\n\nPick the next action.',
       buildTaskHubKeyboard(),
       replace,
     );
@@ -43,7 +43,7 @@ export const botReplies = {
   async showEpicHub(ctx: Context, replace = false) {
     await sendOrEdit(
       ctx,
-      '📚 Epic tools\n\nPick the next action. Use the persistent Tasks and Epics buttons below any time.',
+      '📚 Epic tools\n\nPick the next action.',
       buildEpicHubKeyboard(),
       replace,
     );
@@ -101,6 +101,6 @@ export const botReplies = {
 
   async showTaskDetails(ctx: Context, telegramUserId: string, taskId: string, replace = false) {
     const task = await taskService.getTaskOrThrow(telegramUserId, taskId);
-    await sendOrEdit(ctx, formatTaskDetails(task), buildTaskActionKeyboard(task.id, task.status, task.epicId), replace);
+    await sendOrEdit(ctx, formatTaskDetails(task), buildTaskActionKeyboard(task.id, task.epicId), replace);
   },
 };

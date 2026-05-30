@@ -1,7 +1,6 @@
 import { Context } from 'telegraf';
 
 import { buildEpicCreatedKeyboard, buildTaskCreatedKeyboard } from '../keyboards/followups';
-import { PRIMARY_NAVIGATION_LABELS, buildPrimaryNavigationKeyboard } from '../keyboards/navigation';
 import { botReplies } from '../bot/replies';
 import { conversationService } from '../services/conversationService';
 import { epicService } from '../services/epicService';
@@ -10,7 +9,7 @@ import { FlowType } from '../types/conversation';
 import { EPIC_PURPOSE } from '../utils/callback-data';
 import { parseHumanDate } from '../utils/date';
 import { formatEpicDetails, formatTaskDetails } from '../utils/formatters';
-import { deleteCurrentMessage, getIdentity, isCommandText } from '../utils/telegram';
+import { getIdentity, isCommandText } from '../utils/telegram';
 
 export async function routeTextFlow(ctx: Context) {
   if (!('message' in ctx) || !ctx.message || !('text' in ctx.message)) {
@@ -25,26 +24,6 @@ export async function routeTextFlow(ctx: Context) {
   const identity = getIdentity(ctx);
   const state = await conversationService.getActiveState(identity.userId);
   if (!state) {
-    if (text === PRIMARY_NAVIGATION_LABELS.TASKS) {
-      await deleteCurrentMessage(ctx);
-      await botReplies.showTaskHub(ctx);
-      return;
-    }
-
-    if (text === PRIMARY_NAVIGATION_LABELS.EPICS) {
-      await deleteCurrentMessage(ctx);
-      await botReplies.showEpicHub(ctx);
-      return;
-    }
-
-    return;
-  }
-
-  if (text === PRIMARY_NAVIGATION_LABELS.TASKS || text === PRIMARY_NAVIGATION_LABELS.EPICS) {
-    await deleteCurrentMessage(ctx);
-    await ctx.reply('Finish the current step or send /cancel before switching sections.', {
-      reply_markup: buildPrimaryNavigationKeyboard(),
-    });
     return;
   }
 
@@ -108,7 +87,7 @@ async function handleEpicUpdate(
   const epicId = String(payload.epicId ?? '');
   if (!epicId) {
     await conversationService.clearFlow(userId);
-    await ctx.reply('That update flow expired. Please start /epic_update again.');
+    await ctx.reply('That flow is no longer available. Use /start to continue.');
     return;
   }
 
@@ -224,7 +203,7 @@ async function handleTaskUpdate(
   const taskId = String(payload.taskId ?? '');
   if (!taskId) {
     await conversationService.clearFlow(userId);
-    await ctx.reply('That update flow expired. Please start /task_update again.');
+    await ctx.reply('That flow is no longer available. Use /start to continue.');
     return;
   }
 

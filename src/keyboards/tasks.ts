@@ -1,4 +1,3 @@
-import { TaskStatus } from '@prisma/client';
 import { Markup } from 'telegraf';
 
 import { TaskFilter, taskFilters } from '../types/domain';
@@ -7,33 +6,23 @@ import {
   taskListNavData,
   taskSelectionData,
   taskSelectionNavData,
-  taskStatusData,
 } from '../utils/callback-data';
 import { paginate } from '../utils/pagination';
 import { cancelRow, inlineKeyboard, paginationRow } from './common';
+import { withPrimaryNavigation } from './navigation';
 
 type TaskLike = {
   id: string;
   name: string;
-  status: TaskStatus;
   epic: { name: string };
 };
 
 export function buildTaskListKeyboard(tasks: TaskLike[], filter: TaskFilter, page = 0) {
   const slice = paginate(tasks, page);
-  const rows = slice.items.flatMap((task) => {
-    const actionStatus = task.status === TaskStatus.DONE ? TaskStatus.TODO : TaskStatus.DONE;
-    const actionLabel = task.status === TaskStatus.DONE ? 'Undone' : 'Done';
-
-    return [
-      [Markup.button.callback(`📝 ${task.name} — ${task.epic.name}`, `tv|${task.id}`)],
-      [
-        Markup.button.callback(actionLabel, taskStatusData(task.id, actionStatus)),
-        Markup.button.callback('Update', `tu|${task.id}`),
-        Markup.button.callback('Delete', `tx|${task.id}`),
-      ],
-    ];
-  });
+  const rows = slice.items.flatMap((task) => [
+    [Markup.button.callback(`📝 ${task.name} — ${task.epic.name}`, `tv|${task.id}`)],
+    [Markup.button.callback('Delete', `tx|${task.id}`)],
+  ]);
 
   if (slice.pageCount > 1) {
     rows.push(paginationRow(
@@ -44,7 +33,7 @@ export function buildTaskListKeyboard(tasks: TaskLike[], filter: TaskFilter, pag
     ));
   }
 
-  return inlineKeyboard(rows);
+  return withPrimaryNavigation(rows, 'tasks');
 }
 
 export function buildTaskSelectionKeyboard(tasks: TaskLike[], purpose: string, filter: TaskFilter, page = 0) {
@@ -67,21 +56,16 @@ export function buildTaskSelectionKeyboard(tasks: TaskLike[], purpose: string, f
 
   rows.push(cancelRow());
 
-  return inlineKeyboard(rows);
+  return withPrimaryNavigation(rows, 'tasks');
 }
 
-export function buildTaskActionKeyboard(taskId: string, status: TaskStatus, epicId: string) {
-  const actionStatus = status === TaskStatus.DONE ? TaskStatus.TODO : TaskStatus.DONE;
-  const actionLabel = status === TaskStatus.DONE ? 'Mark todo' : 'Mark done';
-
-  return inlineKeyboard([
+export function buildTaskActionKeyboard(taskId: string, epicId: string) {
+  return withPrimaryNavigation([
     [
-      Markup.button.callback(actionLabel, taskStatusData(taskId, actionStatus)),
-      Markup.button.callback('Update', `tu|${taskId}`),
-      Markup.button.callback('Delete', `tx|${taskId}`),
+      Markup.button.callback('Delete task', `tx|${taskId}`),
+      Markup.button.callback('View epic', `ev|${epicId}`),
     ],
-    [Markup.button.callback('View epic', `ev|${epicId}`)],
-  ]);
+  ], 'tasks');
 }
 
 export function buildTaskUpdateFieldKeyboard() {
