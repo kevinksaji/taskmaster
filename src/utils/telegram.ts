@@ -53,3 +53,19 @@ export async function answerCallback(ctx: Context, text?: string) {
     });
   }
 }
+
+export async function deleteCurrentMessage(ctx: Context) {
+  if (!('deleteMessage' in ctx) || typeof ctx.deleteMessage !== 'function') {
+    return false;
+  }
+
+  try {
+    await ctx.deleteMessage();
+    return true;
+  } catch (error) {
+    logger.warn('telegram.message.delete_failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return false;
+  }
+}

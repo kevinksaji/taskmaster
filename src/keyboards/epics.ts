@@ -64,17 +64,3 @@ export function buildEpicActionKeyboard(epicId: string) {
     ],
   ]);
 }
-
-export function buildEpicDeleteKeyboard(epicId: string, hasTasks: boolean) {
-  if (hasTasks) {
-    return inlineKeyboard([
-      [Markup.button.callback('Cascade delete epic and tasks', `edf|${epicId}|cascade`)],
-      [Markup.button.callback('Cancel', 'ca')],
-    ]);
-  }
-
-  return inlineKeyboard([
-    [Markup.button.callback('Yes, delete epic', `edf|${epicId}|delete`)],
-    [Markup.button.callback('Cancel', 'ca')],
-  ]);
-}

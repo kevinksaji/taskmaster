@@ -84,13 +84,6 @@ export function buildTaskActionKeyboard(taskId: string, status: TaskStatus, epic
   ]);
 }
 
-export function buildTaskDeleteKeyboard(taskId: string) {
-  return inlineKeyboard([
-    [Markup.button.callback('Yes, delete task', `txf|${taskId}|delete`)],
-    [Markup.button.callback('Cancel', 'ca')],
-  ]);
-}
-
 export function buildTaskUpdateFieldKeyboard() {
   return inlineKeyboard([
     [

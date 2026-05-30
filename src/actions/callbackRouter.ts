@@ -12,7 +12,7 @@ import { EPIC_PURPOSE, TASK_PURPOSE } from '../utils/callback-data';
 import { formatTaskDetails } from '../utils/formatters';
 import { UserFacingError } from '../utils/errors';
 import { logger } from '../utils/logger';
-import { answerCallback, getIdentity } from '../utils/telegram';
+import { answerCallback, deleteCurrentMessage, getIdentity } from '../utils/telegram';
 import { startEpicCreateFlow, startEpicUpdateFlow, startTaskCreateFlow, startTaskUpdateFlow } from '../scenes/flowStarters';
 
 export async function handleCallbackQuery(ctx: Context) {
@@ -59,10 +59,7 @@ export async function handleCallbackQuery(ctx: Context) {
         await startEpicUpdateFlow(ctx, identity, String(arg1 ?? ''));
         return;
       case 'ed':
-        await botReplies.showEpicDeleteConfirmation(ctx, identity.userId, String(arg1 ?? ''), true);
-        return;
-      case 'edf':
-        await handleEpicDelete(ctx, identity.userId, String(arg1 ?? ''), String(arg2 ?? ''));
+        await handleEpicDelete(ctx, identity.userId, String(arg1 ?? ''));
         return;
       case 'et':
         await botReplies.showTasksForEpic(ctx, identity.userId, String(arg1 ?? ''), true);
@@ -89,10 +86,7 @@ export async function handleCallbackQuery(ctx: Context) {
         await startTaskUpdateFlow(ctx, identity, String(arg1 ?? ''));
         return;
       case 'tx':
-        await botReplies.showTaskDeleteConfirmation(ctx, identity.userId, String(arg1 ?? ''), true);
-        return;
-      case 'txf':
-        await handleTaskDelete(ctx, identity.userId, String(arg1 ?? ''), String(arg2 ?? ''));
+        await handleTaskDelete(ctx, identity.userId, String(arg1 ?? ''));
         return;
       case 'tt':
         await taskService.setTaskStatus(identity.userId, String(arg1 ?? ''), normalizeStatus(String(arg2 ?? 'TODO')));
@@ -133,7 +127,7 @@ async function handleEpicSelection(ctx: Context, userId: string, chatId: string,
       await startEpicUpdateFlow(ctx, getIdentity(ctx), epicId);
       return;
     case EPIC_PURPOSE.DELETE:
-      await botReplies.showEpicDeleteConfirmation(ctx, userId, epicId, true);
+      await handleEpicDelete(ctx, userId, epicId);
       return;
     case EPIC_PURPOSE.TASK_CREATE: {
       const state = await conversationService.getActiveState(userId);
@@ -184,12 +178,6 @@ async function handleNavigationHubAction(ctx: Context, userId: string, section: 
       case 'delete':
         await botReplies.showTaskSelection(ctx, userId, TASK_PURPOSE.DELETE, 'all', 0, true);
         return;
-      case 'done':
-        await botReplies.showTaskSelection(ctx, userId, TASK_PURPOSE.DONE, 'todo', 0, true);
-        return;
-      case 'undone':
-        await botReplies.showTaskSelection(ctx, userId, TASK_PURPOSE.UNDONE, 'done', 0, true);
-        return;
       default:
         throw new UserFacingError('That task action is no longer available.');
     }
@@ -226,7 +214,7 @@ async function handleTaskSelection(ctx: Context, userId: string, _chatId: string
       await startTaskUpdateFlow(ctx, getIdentity(ctx), taskId);
       return;
     case TASK_PURPOSE.DELETE:
-      await botReplies.showTaskDeleteConfirmation(ctx, userId, taskId, true);
+      await handleTaskDelete(ctx, userId, taskId);
       return;
     case TASK_PURPOSE.DONE: {
       const task = await taskService.setTaskStatus(userId, taskId, TaskStatus.DONE);
@@ -247,38 +235,28 @@ async function handleTaskSelection(ctx: Context, userId: string, _chatId: string
   }
 }
 
-async function handleEpicDelete(ctx: Context, userId: string, epicId: string, action: string) {
-  if (action !== 'delete' && action !== 'cascade') {
-    throw new UserFacingError('That delete action is no longer valid.');
-  }
-
+async function handleEpicDelete(ctx: Context, userId: string, epicId: string) {
   const deleted = await epicService.deleteEpic({
     telegramUserId: userId,
     epicId,
-    cascade: action === 'cascade',
+    cascade: true,
   });
 
-  if ('editMessageText' in ctx && typeof ctx.editMessageText === 'function') {
-    await ctx.editMessageText(`🗑️ Deleted epic ${deleted.epic.name}.`);
-    return;
-  }
-
-  await ctx.reply(`🗑️ Deleted epic ${deleted.epic.name}.`);
+  await hideDeletedEntity(ctx, deleted.epic.id, {
+    listPrefix: `ev|${deleted.epic.id}`,
+    selectionPrefix: `es|`,
+    detailActionPrefix: `ed|${deleted.epic.id}`,
+  });
 }
 
-async function handleTaskDelete(ctx: Context, userId: string, taskId: string, action: string) {
-  if (action !== 'delete') {
-    throw new UserFacingError('That delete action is no longer valid.');
-  }
-
+async function handleTaskDelete(ctx: Context, userId: string, taskId: string) {
   const deleted = await taskService.deleteTask(userId, taskId);
 
-  if ('editMessageText' in ctx && typeof ctx.editMessageText === 'function') {
-    await ctx.editMessageText(`🗑️ Deleted task ${deleted.name}.`);
-    return;
-  }
-
-  await ctx.reply(`🗑️ Deleted task ${deleted.name}.`);
+  await hideDeletedEntity(ctx, deleted.id, {
+    listPrefix: `tv|${deleted.id}`,
+    selectionPrefix: `ts|`,
+    detailActionPrefix: `tx|${deleted.id}`,
+  });
 }
 
 async function handleEpicUpdateField(ctx: Context, userId: string, chatId: string, field: string) {
@@ -376,4 +354,75 @@ async function handleTaskUpdateStatus(ctx: Context, userId: string, statusValue:
 
 function normalizeStatus(value: string): TaskStatus {
   return value === TaskStatus.DONE ? TaskStatus.DONE : TaskStatus.TODO;
+}
+
+async function hideDeletedEntity(
+  ctx: Context,
+  entityId: string,
+  mode: {
+    listPrefix: string;
+    selectionPrefix: string;
+    detailActionPrefix: string;
+  },
+) {
+  const message = 'callbackQuery' in ctx && ctx.callbackQuery && 'message' in ctx.callbackQuery
+    ? ctx.callbackQuery.message
+    : undefined;
+
+  if (!message || !('reply_markup' in message) || !message.reply_markup?.inline_keyboard) {
+    await deleteCurrentMessage(ctx);
+    return;
+  }
+
+  const rows = message.reply_markup.inline_keyboard;
+  const isListView = rows.some((row) => row.some((button) => hasCallback(button, mode.listPrefix)));
+  const isSelectionView = rows.some((row) => row.some((button) => hasCallback(button, mode.selectionPrefix) && endsWithCallback(button, entityId)));
+  const isDetailView = rows.some((row) => row.some((button) => hasCallback(button, mode.detailActionPrefix)));
+
+  if (!isListView && !isSelectionView && isDetailView) {
+    await deleteCurrentMessage(ctx);
+    return;
+  }
+
+  const filteredRows = rows
+    .filter((row) => !row.some((button) => referencesEntity(button, entityId)))
+    .filter((row) => row.length > 0);
+
+  if (filteredRows.length === 0) {
+    await deleteCurrentMessage(ctx);
+    return;
+  }
+
+  if ('editMessageReplyMarkup' in ctx && typeof ctx.editMessageReplyMarkup === 'function') {
+    await ctx.editMessageReplyMarkup({
+      inline_keyboard: filteredRows,
+    });
+    return;
+  }
+
+  await deleteCurrentMessage(ctx);
+}
+
+function referencesEntity(button: unknown, entityId: string) {
+  const callbackData = getCallbackData(button);
+  return typeof callbackData === 'string' && callbackData.includes(`|${entityId}`);
+}
+
+function hasCallback(button: unknown, prefix: string) {
+  const callbackData = getCallbackData(button);
+  return typeof callbackData === 'string' && callbackData.startsWith(prefix);
+}
+
+function endsWithCallback(button: unknown, entityId: string) {
+  const callbackData = getCallbackData(button);
+  return typeof callbackData === 'string' && callbackData.endsWith(`|${entityId}`);
+}
+
+function getCallbackData(button: unknown) {
+  if (!button || typeof button !== 'object' || !('callback_data' in button)) {
+    return undefined;
+  }
+
+  const candidate = (button as { callback_data?: unknown }).callback_data;
+  return typeof candidate === 'string' ? candidate : undefined;
 }

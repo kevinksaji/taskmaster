@@ -30,10 +30,6 @@ export function buildTaskHubKeyboard() {
       Markup.button.callback('Update task', 'nh|tasks|update'),
       Markup.button.callback('Delete task', 'nh|tasks|delete'),
     ],
-    [
-      Markup.button.callback('Mark done', 'nh|tasks|done'),
-      Markup.button.callback('Mark todo', 'nh|tasks|undone'),
-    ],
   ]);
 }
 
