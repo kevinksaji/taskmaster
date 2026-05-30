@@ -6,3 +6,4 @@ dist
 .prisma
 coverage
 *.log
+.env*
