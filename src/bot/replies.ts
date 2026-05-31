@@ -1,11 +1,52 @@
 import { Context } from 'telegraf';
 import { InlineKeyboardMarkup } from 'telegraf/types';
 
+const Quote = require('inspirational-quotes') as {
+  getQuote(options?: { author?: boolean }): { text: string; author?: string };
+};
+
 import { buildEpicDeleteKeyboard } from '../keyboards/epics';
 import { buildTaskBatchEpicKeyboard, buildTaskEpicBrowserKeyboard, buildTaskListKeyboard } from '../keyboards/tasks';
 import { epicService } from '../services/epicService';
+import { sessionService } from '../services/sessionService';
 import { taskService } from '../services/taskService';
 import { UserFacingError } from '../utils/errors';
+
+function getNextQuote(lastQuoteText: string | null) {
+  let quote = Quote.getQuote();
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    if (!lastQuoteText || quote.text !== lastQuoteText) {
+      break;
+    }
+
+    quote = Quote.getQuote();
+  }
+
+  return quote;
+}
+
+async function buildOverviewText(telegramUserId: string, heading: string) {
+  const [epics, session] = await Promise.all([
+    epicService.listEpics(telegramUserId),
+    sessionService.getSession(telegramUserId),
+  ]);
+  const taskCount = epics.reduce((total, epic) => total + epic._count.tasks, 0);
+  const quote = getNextQuote(session.lastQuoteText);
+
+  await sessionService.persistSession(telegramUserId, {
+    ...session,
+    lastQuoteText: quote.text,
+  });
+
+  return [
+    heading,
+    `📚 Epics: ${epics.length}`,
+    `✅ Tasks: ${taskCount}`,
+    '',
+    `_${quote.text}${quote.author ? ` - ${quote.author}` : ''}_`,
+  ].join('\n');
+}
 
 // This file is the bot's presentation layer for reusable Telegram responses.
 // Routers and commands decide *what* should happen, while these helpers decide
@@ -73,9 +114,15 @@ export const botReplies = {
     await sendOrEdit(ctx, text, buildTaskBatchEpicKeyboard(epics), replace);
   },
 
+  async showOverview(ctx: Context, telegramUserId: string, heading: string, replace = false) {
+    const text = await buildOverviewText(telegramUserId, heading);
+    await sendOrEdit(ctx, text, undefined, replace);
+  },
+
   // Shared terminal messages for small flow transitions.
-  async showCancelled(ctx: Context, replace = false) {
-    await sendOrEdit(ctx, 'Cancelled.', undefined, replace);
+  async showCancelled(ctx: Context, telegramUserId: string, replace = false) {
+    const text = await buildOverviewText(telegramUserId, '🧹 Reset complete');
+    await sendOrEdit(ctx, text, undefined, replace);
   },
 
   async showTaskBatchNeedsEpicName(ctx: Context, replace = false) {

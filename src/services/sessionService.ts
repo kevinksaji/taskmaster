@@ -9,6 +9,9 @@ function parseStoredSession(record: Awaited<ReturnType<typeof sessionRepository.
   const candidate = record.sessionData && typeof record.sessionData === 'object' && !Array.isArray(record.sessionData)
     ? record.sessionData as Record<string, unknown>
     : {};
+  const lastQuoteText = typeof candidate.lastQuoteText === 'string' && candidate.lastQuoteText.trim().length > 0
+    ? candidate.lastQuoteText
+    : null;
 
   const taskNames = Array.isArray(candidate.taskNames)
     ? candidate.taskNames.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
@@ -16,11 +19,11 @@ function parseStoredSession(record: Awaited<ReturnType<typeof sessionRepository.
 
   switch (record.operationKind) {
     case BOT_OPERATION_KINDS.TASK_BATCH_PICK_EPIC:
-      return { started: record.started, operation: { kind: BOT_OPERATION_KINDS.TASK_BATCH_PICK_EPIC, taskNames } };
+      return { started: record.started, lastQuoteText, operation: { kind: BOT_OPERATION_KINDS.TASK_BATCH_PICK_EPIC, taskNames } };
     case BOT_OPERATION_KINDS.TASK_BATCH_CREATE_EPIC_NAME:
-      return { started: record.started, operation: { kind: BOT_OPERATION_KINDS.TASK_BATCH_CREATE_EPIC_NAME, taskNames } };
+      return { started: record.started, lastQuoteText, operation: { kind: BOT_OPERATION_KINDS.TASK_BATCH_CREATE_EPIC_NAME, taskNames } };
     default:
-      return { started: record.started, operation: { kind: BOT_OPERATION_KINDS.IDLE } };
+      return { started: record.started, lastQuoteText, operation: { kind: BOT_OPERATION_KINDS.IDLE } };
   }
 }
 
@@ -36,6 +39,7 @@ export const sessionService = {
       started: session.started,
       operationKind: session.operation.kind,
       sessionData: {
+        lastQuoteText: session.lastQuoteText,
         taskNames: 'taskNames' in session.operation ? session.operation.taskNames : [],
       },
     });
@@ -53,6 +57,7 @@ export const sessionService = {
     const current = await this.getSession(telegramUserId);
     await this.persistSession(telegramUserId, {
       started: current.started,
+      lastQuoteText: current.lastQuoteText,
       operation: {
         kind: BOT_OPERATION_KINDS.TASK_BATCH_PICK_EPIC,
         taskNames,
@@ -64,6 +69,7 @@ export const sessionService = {
     const current = await this.getSession(telegramUserId);
     await this.persistSession(telegramUserId, {
       started: current.started,
+      lastQuoteText: current.lastQuoteText,
       operation: {
         kind: BOT_OPERATION_KINDS.TASK_BATCH_CREATE_EPIC_NAME,
         taskNames,
@@ -75,6 +81,7 @@ export const sessionService = {
     const current = await this.getSession(telegramUserId);
     await this.persistSession(telegramUserId, {
       started: current.started,
+      lastQuoteText: current.lastQuoteText,
       operation: {
         kind: BOT_OPERATION_KINDS.IDLE,
       },

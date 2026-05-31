@@ -71,8 +71,8 @@ export async function handleCallbackQuery(ctx: Context) {
       }
       case 'cx':
         await sessionService.clearOperation(identity.userId);
-        await answerCallback(ctx, 'Cancelled');
-        await botReplies.showCancelled(ctx, true);
+        await answerCallback(ctx);
+        await botReplies.showCancelled(ctx, identity.userId, true);
         return;
       default:
         await answerCallback(ctx);
