@@ -1,18 +1,13 @@
 import { Context } from 'telegraf';
 
 import { botReplies } from '../bot/replies';
-import { buildPrimaryNavigationKeyboard, buildTasksFlowKeyboard } from '../keyboards/navigation';
-import { conversationService } from '../services/conversationService';
 import { epicService } from '../services/epicService';
 import { taskService } from '../services/taskService';
-import { FlowType } from '../types/conversation';
-import { parseTaskFilter } from '../types/domain';
-import { EPIC_PURPOSE } from '../utils/callback-data';
+import { HUB_VIEWS } from '../types/navigation';
+import { decodeHistory, decodeView } from '../utils/callback-data';
 import { UserFacingError } from '../utils/errors';
-import { formatTaskDetails } from '../utils/formatters';
 import { logger } from '../utils/logger';
-import { answerCallback, deleteCurrentMessage, getIdentity } from '../utils/telegram';
-import { startEpicCreateFlow, startTaskCreateFlow } from '../scenes/flowStarters';
+import { answerCallback, getIdentity } from '../utils/telegram';
 
 export async function handleCallbackQuery(ctx: Context) {
   if (!('callbackQuery' in ctx) || !ctx.callbackQuery || !('data' in ctx.callbackQuery)) {
@@ -23,47 +18,27 @@ export async function handleCallbackQuery(ctx: Context) {
 
   const identity = getIdentity(ctx);
   const data = String(ctx.callbackQuery.data);
-  const [kind, arg1, arg2, arg3] = data.split('|');
+  const [kind, arg1, arg2] = data.split('|');
 
   try {
     switch (kind) {
       case 'noop':
         return;
-      case 'ca':
-        await conversationService.clearFlow(identity.userId);
-        await ctx.reply('Returned to the main menu.', {
-          reply_markup: buildPrimaryNavigationKeyboard(),
-        });
+      case 'hv':
+        await handleViewNavigation(ctx, identity.userId, decodeView(arg1), decodeHistory(arg2));
         return;
-      case 'ne':
-        await startEpicCreateFlow(ctx, identity);
+      case 'bk':
+        await handleBackNavigation(ctx, identity.userId, decodeHistory(arg1));
         return;
-      case 'nt':
-        await startTaskCreateFlow(ctx, identity);
+      case 'td':
+        await taskService.deleteTask(identity.userId, String(arg1 ?? ''));
+        await answerCallback(ctx, 'Task completed');
+        await botReplies.showTasksList(ctx, identity.userId, decodeHistory(arg2), true);
         return;
-      case 'el':
-        await botReplies.showEpicsList(ctx, identity.userId, Number(arg1 ?? '0'), true);
-        return;
-      case 'en':
-        await botReplies.showEpicSelection(ctx, identity.userId, String(arg1 ?? ''), Number(arg2 ?? '0'), true);
-        return;
-      case 'es':
-        await handleEpicSelection(ctx, identity.userId, identity.chatId, String(arg1 ?? ''), String(arg2 ?? ''));
-        return;
-      case 'et':
-        await botReplies.showTasksForEpic(ctx, identity.userId, String(arg1 ?? ''), true);
-        return;
-      case 'tl':
-        await botReplies.showTasksList(ctx, identity.userId, parseTaskFilter(arg1), Number(arg2 ?? '0'), true);
-        return;
-      case 'tv':
-        await botReplies.showTaskDetails(ctx, identity.userId, String(arg1 ?? ''), true);
-        return;
-      case 'tx':
-        await handleTaskDelete(ctx, identity.userId, String(arg1 ?? ''));
-        return;
-      case 'tc':
-        await startTaskCreateFlow(ctx, identity, { epicId: String(arg1 ?? '') });
+      case 'ec':
+        await epicService.deleteEpic(identity.userId, String(arg1 ?? ''));
+        await answerCallback(ctx, 'Epic cleared');
+        await botReplies.showEpicsList(ctx, identity.userId, decodeHistory(arg2), true);
         return;
       default:
         await ctx.reply('That action is no longer available. Please run the command again.');
@@ -82,108 +57,36 @@ export async function handleCallbackQuery(ctx: Context) {
   }
 }
 
-async function handleEpicSelection(ctx: Context, userId: string, chatId: string, purpose: string, epicId: string) {
-  switch (purpose) {
-    case EPIC_PURPOSE.TASK_CREATE: {
-      const state = await conversationService.getActiveState(userId);
-      if (!state || state.flow !== FlowType.TASK_CREATE) {
-        throw new UserFacingError('That task creation flow expired. Start /task_create again.');
-      }
-
-      const task = await taskService.createTask({
-        telegramUserId: userId,
-        name: String(state.payload.name ?? ''),
-        epicId,
-      });
-
-      await conversationService.clearFlow(userId);
-      await ctx.reply(`✅ Task created.\n\n${formatTaskDetails(task)}`, {
-        reply_markup: buildTasksFlowKeyboard(),
-      });
-      return;
-    }
-    default:
-      throw new UserFacingError('That button expired. Please run the command again.');
-  }
-}
-
-async function handleTaskDelete(ctx: Context, userId: string, taskId: string) {
-  const deleted = await taskService.deleteTask(userId, taskId);
-
-  await hideDeletedEntity(ctx, deleted.id, {
-    listPrefix: `tv|${deleted.id}`,
-    selectionPrefix: `ts|`,
-    detailActionPrefix: `tx|${deleted.id}`,
-  });
-}
-
-async function hideDeletedEntity(
-  ctx: Context,
-  entityId: string,
-  mode: {
-    listPrefix: string;
-    selectionPrefix: string;
-    detailActionPrefix: string;
-  },
-) {
-  const message = 'callbackQuery' in ctx && ctx.callbackQuery && 'message' in ctx.callbackQuery
-    ? ctx.callbackQuery.message
-    : undefined;
-
-  if (!message || !('reply_markup' in message) || !message.reply_markup?.inline_keyboard) {
-    await deleteCurrentMessage(ctx);
+async function handleViewNavigation(ctx: Context, userId: string, view: ReturnType<typeof decodeView>, history: ReturnType<typeof decodeHistory>) {
+  if (view === HUB_VIEWS.TASKS) {
+    await botReplies.showTasksList(ctx, userId, history, true);
     return;
   }
 
-  const rows = message.reply_markup.inline_keyboard;
-  const isListView = rows.some((row) => row.some((button) => hasCallback(button, mode.listPrefix)));
-  const isSelectionView = rows.some((row) => row.some((button) => hasCallback(button, mode.selectionPrefix) && endsWithCallback(button, entityId)));
-  const isDetailView = rows.some((row) => row.some((button) => hasCallback(button, mode.detailActionPrefix)));
-
-  if (!isListView && !isSelectionView && isDetailView) {
-    await deleteCurrentMessage(ctx);
+  if (view === HUB_VIEWS.EPICS) {
+    await botReplies.showEpicsList(ctx, userId, history, true);
     return;
   }
 
-  const filteredRows = rows
-    .filter((row) => !row.some((button) => referencesEntity(button, entityId)))
-    .filter((row) => row.length > 0);
+  await botReplies.showStart(ctx, true);
+}
 
-  if (filteredRows.length === 0) {
-    await deleteCurrentMessage(ctx);
+async function handleBackNavigation(ctx: Context, userId: string, history: ReturnType<typeof decodeHistory>) {
+  // Back is derived entirely from the callback payload. That keeps the bot
+  // server stateless for navigation and removes the need for a database-backed
+  // conversation flow just to move between list screens.
+  const previousView = history.at(-1) ?? HUB_VIEWS.HOME;
+  const previousHistory = history.slice(0, -1);
+
+  if (previousView === HUB_VIEWS.TASKS) {
+    await botReplies.showTasksList(ctx, userId, previousHistory, true);
     return;
   }
 
-  if ('editMessageReplyMarkup' in ctx && typeof ctx.editMessageReplyMarkup === 'function') {
-    await ctx.editMessageReplyMarkup({
-      inline_keyboard: filteredRows,
-    });
+  if (previousView === HUB_VIEWS.EPICS) {
+    await botReplies.showEpicsList(ctx, userId, previousHistory, true);
     return;
   }
 
-  await deleteCurrentMessage(ctx);
-}
-
-function referencesEntity(button: unknown, entityId: string) {
-  const callbackData = getCallbackData(button);
-  return typeof callbackData === 'string' && callbackData.includes(`|${entityId}`);
-}
-
-function hasCallback(button: unknown, prefix: string) {
-  const callbackData = getCallbackData(button);
-  return typeof callbackData === 'string' && callbackData.startsWith(prefix);
-}
-
-function endsWithCallback(button: unknown, entityId: string) {
-  const callbackData = getCallbackData(button);
-  return typeof callbackData === 'string' && callbackData.endsWith(`|${entityId}`);
-}
-
-function getCallbackData(button: unknown) {
-  if (!button || typeof button !== 'object' || !('callback_data' in button)) {
-    return undefined;
-  }
-
-  const candidate = (button as { callback_data?: unknown }).callback_data;
-  return typeof candidate === 'string' ? candidate : undefined;
+  await botReplies.showStart(ctx, true);
 }

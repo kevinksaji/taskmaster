@@ -1,42 +1,27 @@
 import { Context, Telegraf } from 'telegraf';
 
-import { buildPrimaryNavigationKeyboard, PRIMARY_NAVIGATION_LABELS } from '../keyboards/navigation';
+import { botReplies } from '../bot/replies';
 import { withErrorHandling } from '../middleware/withErrorHandling';
-import { conversationService } from '../services/conversationService';
-import { getIdentity } from '../utils/telegram';
 
 const startMessage = [
   '👋 Welcome to Taskmaster.',
   '',
-  'Use the floating Tasks and Epics buttons below to switch between the two main flows.',
+  'Tap Tasks to see every task as a button.',
+  'Tap a task button to complete it immediately.',
   '',
-  'Tasks flow:',
-  '• Lists every task as Task - Epic',
-  '• Tap a task to complete it',
+  'Tap Epics to see every epic as a button.',
+  'Tap an epic button to delete that epic and all of its tasks immediately.',
   '',
-  'Epics flow:',
-  '• Lists every epic as a button',
-  '• Clicking an epic opens the tasks in that epic',
+  'Use Back in the hub to return to the previous screen.',
 ].join('\n');
 
 export async function replyWithPrimaryNavigation(ctx: Context) {
-  const identity = getIdentity(ctx);
-  await conversationService.clearFlow(identity.userId);
-  await ctx.reply(startMessage, {
-    reply_markup: buildPrimaryNavigationKeyboard(),
-  });
+  await ctx.reply(startMessage, { reply_markup: undefined });
+  await botReplies.showStart(ctx);
 }
 
 export function registerStartCommand(bot: Telegraf) {
   bot.start(withErrorHandling(async (ctx) => {
-    await replyWithPrimaryNavigation(ctx);
-  }));
-
-  bot.command('back', withErrorHandling(async (ctx) => {
-    await replyWithPrimaryNavigation(ctx);
-  }));
-
-  bot.hears(PRIMARY_NAVIGATION_LABELS.BACK, withErrorHandling(async (ctx) => {
     await replyWithPrimaryNavigation(ctx);
   }));
 }

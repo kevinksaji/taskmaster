@@ -1,31 +1,28 @@
 import { Telegraf } from 'telegraf';
 
-import { buildPrimaryNavigationKeyboard } from '../keyboards/navigation';
+import { buildStartKeyboard } from '../keyboards/navigation';
 import { withErrorHandling } from '../middleware/withErrorHandling';
 
 const helpMessage = [
   '🧭 Taskmaster commands',
   '',
   '/epics - Open the epic flow',
-  '/epic_create - Create an epic in a guided flow',
   '/tasks - Open the task flow',
-  '/task_create - Create a task in a guided flow',
-  '/back - Return to the main tasks or epics chooser',
+  '/start - Show the start hub',
   '',
   'Examples:',
   '• /tasks',
-  '• /task_create',
   '• /epics',
   '',
-  'The Tasks and Epics buttons below switch the bot between the two main flows.',
+  'The inline hub keeps Tasks, Epics, and Back available once you enter a list.',
   '',
-  'Interactive flows use inline keyboards, so you never need to type internal IDs.',
+  'Tapping a task completes it immediately. Tapping an epic deletes it and all of its tasks immediately.',
 ].join('\n');
 
 export function registerHelpCommand(bot: Telegraf) {
   bot.command('help', withErrorHandling(async (ctx) => {
     await ctx.reply(helpMessage, {
-      reply_markup: buildPrimaryNavigationKeyboard(),
+      reply_markup: buildStartKeyboard(),
     });
   }));
 }

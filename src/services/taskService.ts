@@ -1,12 +1,10 @@
 import { epicRepository } from '../repositories/epicRepository';
 import { taskRepository } from '../repositories/taskRepository';
-import { TaskFilter } from '../types/domain';
 import { UserFacingError } from '../utils/errors';
-import { taskNameSchema } from '../utils/validation';
 
 export const taskService = {
-  listTasks(telegramUserId: string, filter: TaskFilter) {
-    return taskRepository.listByUser(telegramUserId, filter);
+  listTasks(telegramUserId: string) {
+    return taskRepository.listByUser(telegramUserId);
   },
 
   async getTaskOrThrow(telegramUserId: string, taskId: string) {
@@ -25,21 +23,6 @@ export const taskService = {
     }
 
     return epic;
-  },
-
-  async createTask(input: {
-    telegramUserId: string;
-    name: string;
-    epicId: string;
-  }) {
-    const name = taskNameSchema.parse(input.name);
-    await this.ensureEpicOwnership(input.telegramUserId, input.epicId);
-
-    return taskRepository.create({
-      telegramUserId: input.telegramUserId,
-      name,
-      epicId: input.epicId,
-    });
   },
 
   async deleteTask(telegramUserId: string, taskId: string) {

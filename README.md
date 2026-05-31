@@ -1,18 +1,18 @@
 # Taskmaster
 
-Taskmaster is a production-ready Telegram bot for managing Scrum-style epics and tasks entirely inside Telegram. It uses slash commands, persistent `/tasks` and `/epics` reply-keyboard buttons, compact action menus, and a webhook-first architecture that works consistently in local development and on Vercel.
+Taskmaster is a production-ready Telegram bot for processing epics and tasks inside Telegram. It uses a compact inline hub, direct tap actions, and a webhook-first architecture that works consistently in local development and on Vercel.
 
 ## Project overview
 
-Taskmaster lets each Telegram user manage their own backlog without memorising IDs. Users create epics such as `Things to buy for going overseas`, then add tasks like `Moisturiser` or `Wash the car` inside the right epic. All selection-heavy flows use inline buttons instead of asking users to type internal identifiers.
+Taskmaster lets each Telegram user work through an existing backlog without memorising IDs. The bot is intentionally stripped down to a single inline hub: tap `Tasks` to see every task as a button, tap a task to complete it immediately, tap `Epics` to see every epic as a button, and tap an epic to delete that epic together with all of its tasks.
 
 Core capabilities:
 
-- Epic create and view flows
-- Task create, view, and complete flows
-- Persistent `/tasks` and `/epics` reply-keyboard buttons for quick navigation
-- Durable multi-step flows backed by PostgreSQL through Prisma
-- Stateless webhook processing for Vercel serverless deployment
+- Inline start screen with `Tasks` and `Epics`
+- Inline hub with `Tasks`, `Epics`, and `Back`
+- Direct tap-to-complete task buttons with no confirmation screen
+- Direct tap-to-delete epic buttons with cascade task deletion and no confirmation screen
+- Stateless hub navigation encoded in callback payloads instead of server-side flow state
 - Ownership checks on every epic and task operation
 
 ## Architecture summary
@@ -21,16 +21,15 @@ The application follows a layered structure:
 
 - `src/commands`: Telegram slash command entrypoints
 - `src/actions`: Inline button callback router
-- `src/scenes`: Durable text-step flow handlers backed by Prisma conversation state
 - `src/services`: Business rules and ownership enforcement
 - `src/repositories`: Prisma data access helpers
-- `src/keyboards`: Reusable inline keyboard builders
-- `src/utils`: Validation, formatting, logging, and callback helpers
+- `src/keyboards`: Reusable inline hub and list keyboard builders
+- `src/utils`: Callback encoding, logging, and shared Telegram helpers
 - `src/api`: Shared webhook processing logic
 - `api/telegram/webhook.ts`: Vercel webhook entrypoint
-- `prisma/schema.prisma`: Database schema for epics, tasks, and durable conversation state
+- `prisma/schema.prisma`: Database schema for epics and tasks
 
-The bot is deliberately stateless at the process level. Multi-step flows are resumed from the `ConversationState` table, so the next webhook can continue correctly even if Vercel spins up a fresh function instance.
+The bot is deliberately stateless at the process level. The inline hub stores its back-stack inside callback data, so the next webhook can rebuild the current screen without a database-backed conversation table.
 
 ## Required environment variables
 
@@ -155,37 +154,37 @@ This clears the registered Telegram webhook without dropping pending updates.
 
 ## Command list
 
-The persistent `/tasks` and `/epics` buttons jump straight into the main command flows. Slash commands remain available for direct access and power-user workflows.
+Slash commands remain available for direct access, but the bot's primary UX is the inline hub.
 
 - `/start`: Welcome message, command list, and examples
 - `/help`: Command reference and usage examples
 - `/epics`: Open the epic flow
-- `/epic_create`: Create an epic in a guided flow
 - `/tasks`: Open the task flow
-- `/task_create`: Create a task in a guided flow
-- `/cancel`: Cancel the active multi-step flow
 
 ## Example user flows
 
-### Create an epic
+### Complete a task
 
-1. User sends `/epic_create`
-2. Bot asks for the epic name
-3. Bot stores the epic and shows follow-up buttons
+1. User sends `/start`
+2. Bot shows inline `Tasks` and `Epics` buttons
+3. User taps `Tasks`
+4. Bot edits the same message into the hub view with `Tasks`, `Epics`, and `Back` plus one button per task
+5. User taps a task button
+6. Bot deletes the task and removes it from the same message immediately
 
-### Create a task
+### Clear an epic
 
-1. User sends `/task_create`
-2. Bot asks for the task name
-3. Bot asks the user to pick an epic with inline buttons
-4. Bot stores the task immediately and shows follow-up buttons
+1. User taps `Epics`
+2. Bot edits the same message into the hub view with one button per epic
+3. User taps an epic button
+4. Bot deletes that epic and all of its tasks immediately
 
 ## Stateless webhook notes
 
-This project does not rely on in-memory Telegraf session storage. Instead:
+This project does not rely on in-memory Telegraf session storage or database-backed conversation state. Instead:
 
-- Active conversation state is stored in the database
-- Each incoming webhook request can resume the next step independently
+- Each inline button carries the next view and a compact back-stack
+- Each incoming webhook request can rebuild the current hub screen independently
 - The same bot behavior works locally and in Vercel serverless functions
 
 ## Troubleshooting
@@ -193,7 +192,7 @@ This project does not rely on in-memory Telegraf session storage. Instead:
 - If the bot does not respond, confirm the webhook is registered and points to the right `APP_BASE_URL`.
 - If Telegram returns `403`, verify `TELEGRAM_WEBHOOK_SECRET` matches the header secret configured in `setWebhook`.
 - If Prisma fails to connect, verify the pooled Prisma connection string in `STORAGE_POSTGRES_PRISMA_URL` and the direct connection string in `STORAGE_POSTGRES_URL_NON_POOLING`.
-- If you see errors that tables like `ConversationState`, `Epic`, or `Task` do not exist, the new database has not had Prisma migrations applied yet. Run `npm run prisma:deploy` against that database.
+- If you see errors that tables like `Epic` or `Task` do not exist, the new database has not had Prisma migrations applied yet. Run `npm run prisma:deploy` against that database.
 - If local development does not receive updates, confirm your tunnel URL is live and `APP_BASE_URL` matches it exactly.
 - If commands do not appear in Telegram, trigger the webhook once after deployment so the bot can register commands on startup.
 
@@ -226,8 +225,7 @@ This project does not rely on in-memory Telegraf session storage. Instead:
 
 ## Future improvements
 
-1. Add task comments and activity history.
-2. Add recurring tasks and reminders.
-3. Add richer pagination and inline search for very large backlogs.
-4. Add test coverage for services and callback flows.
-5. Add optional admin analytics and audit logging.
+1. Add optional create flows back behind a separate admin hub.
+2. Add test coverage for callback routing and deletion flows.
+3. Add soft-delete or archive support if recovery is ever needed.
+4. Add optional admin analytics and audit logging.

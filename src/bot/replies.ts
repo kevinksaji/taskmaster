@@ -1,15 +1,17 @@
 import { Context } from 'telegraf';
 import { InlineKeyboardMarkup } from 'telegraf/types';
 
-import { buildEpicCreateKeyboard, buildEpicListKeyboard, buildEpicSelectionKeyboard } from '../keyboards/epics';
-import { buildTaskActionKeyboard, buildTaskCreateKeyboard, buildTaskListKeyboard } from '../keyboards/tasks';
+import { buildEpicListKeyboard } from '../keyboards/epics';
+import { buildStartKeyboard } from '../keyboards/navigation';
+import { buildTaskListKeyboard } from '../keyboards/tasks';
 import { epicService } from '../services/epicService';
 import { taskService } from '../services/taskService';
-import { TaskFilter } from '../types/domain';
-import { EPIC_PURPOSE } from '../utils/callback-data';
-import { formatEpicList, formatTaskDetails, formatTaskList } from '../utils/formatters';
+import { HubView } from '../types/navigation';
 
 async function sendOrEdit(ctx: Context, text: string, replyMarkup?: InlineKeyboardMarkup, replace = false) {
+  // The hub lives in a single inline message whenever possible. Editing that
+  // message in place keeps chat noise low while leaving the currently visible
+  // task or epic buttons stable under the user's thumb.
   if (replace && 'editMessageText' in ctx && typeof ctx.editMessageText === 'function') {
     try {
       await ctx.editMessageText(text, {
@@ -30,47 +32,19 @@ async function sendOrEdit(ctx: Context, text: string, replyMarkup?: InlineKeyboa
 }
 
 export const botReplies = {
-  async showEpicsList(ctx: Context, telegramUserId: string, page = 0, replace = false) {
+  async showStart(ctx: Context, replace = false) {
+    await sendOrEdit(ctx, 'Choose what to manage.', buildStartKeyboard(), replace);
+  },
+
+  async showTasksList(ctx: Context, telegramUserId: string, history: HubView[], replace = false) {
+    const tasks = await taskService.listTasks(telegramUserId);
+    const text = tasks.length === 0 ? 'No tasks.' : 'Tasks';
+    await sendOrEdit(ctx, text, buildTaskListKeyboard(tasks, history), replace);
+  },
+
+  async showEpicsList(ctx: Context, telegramUserId: string, history: HubView[], replace = false) {
     const epics = await epicService.listEpics(telegramUserId);
-    if (epics.length === 0) {
-      await sendOrEdit(ctx, '📭 No epics found yet.', buildEpicCreateKeyboard(), replace);
-      return;
-    }
-
-    await sendOrEdit(ctx, formatEpicList(epics), buildEpicListKeyboard(epics, page), replace);
-  },
-
-  async showEpicSelection(ctx: Context, telegramUserId: string, purpose: string, page = 0, replace = false) {
-    const epics = await epicService.listEpics(telegramUserId);
-    if (epics.length === 0) {
-      await sendOrEdit(ctx, '📭 No epics found yet.', buildEpicCreateKeyboard(), replace);
-      return;
-    }
-
-    const prompt = purpose === EPIC_PURPOSE.TASK_CREATE
-      ? 'Choose an epic for this task:'
-      : 'Choose an epic:';
-
-    await sendOrEdit(ctx, prompt, buildEpicSelectionKeyboard(epics, purpose, page), replace);
-  },
-
-  async showTasksList(ctx: Context, telegramUserId: string, filter: TaskFilter, page = 0, replace = false) {
-    const tasks = await taskService.listTasks(telegramUserId, filter);
-    if (tasks.length === 0) {
-      await sendOrEdit(ctx, '📭 No tasks found.', buildTaskCreateKeyboard(), replace);
-      return;
-    }
-
-    await sendOrEdit(ctx, formatTaskList(tasks, filter), buildTaskListKeyboard(tasks, filter, page), replace);
-  },
-
-  async showTasksForEpic(ctx: Context, telegramUserId: string, epicId: string, replace = false) {
-    const details = await epicService.getEpicDetails(telegramUserId, epicId);
-    await sendOrEdit(ctx, formatTaskList(details.tasks, details.epic.name), buildTaskListKeyboard(details.tasks, 'all', 0), replace);
-  },
-
-  async showTaskDetails(ctx: Context, telegramUserId: string, taskId: string, replace = false) {
-    const task = await taskService.getTaskOrThrow(telegramUserId, taskId);
-    await sendOrEdit(ctx, formatTaskDetails(task), buildTaskActionKeyboard(task.id), replace);
+    const text = epics.length === 0 ? 'No epics.' : 'Epics';
+    await sendOrEdit(ctx, text, buildEpicListKeyboard(epics, history), replace);
   },
 };

@@ -38,6 +38,12 @@ export const epicRepository = {
     });
   },
 
+  delete(id: string, telegramUserId: string) {
+    return prisma.epic.deleteMany({
+      where: { id, telegramUserId },
+    });
+  },
+
   listTasks(id: string, telegramUserId: string) {
     return prisma.task.findMany({
       where: { epicId: id, telegramUserId },

@@ -32,16 +32,3 @@ model Task {
   @@index([telegramUserId])
   @@index([epicId])
 }
-
-model ConversationState {
-  id             String   @id @default(cuid())
-  telegramUserId String   @unique
-  chatId         String
-  flow           String
-  step           String
-  payload        Json?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([chatId])
-}

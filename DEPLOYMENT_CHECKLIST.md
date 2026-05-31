@@ -49,9 +49,9 @@
 - Open the deployed health or webhook route if needed.
 - Send `/start` to the bot.
 - Confirm commands appear in Telegram.
-- Create one epic and one task.
-- Confirm callback buttons work.
-- Confirm task completion deletes the task.
+- Confirm the inline Tasks and Epics buttons appear.
+- Confirm tapping a task deletes it immediately.
+- Confirm tapping an epic deletes it and its tasks immediately.
 
 ## Rollback and maintenance
 
