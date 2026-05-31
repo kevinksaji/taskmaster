@@ -6,7 +6,7 @@ import { getIdentity } from '../utils/telegram';
 
 const startMessage = 'Taskmaster is ready.';
 
-export async function replyWithPrimaryNavigation(ctx: Context) {
+async function replyWithPrimaryNavigation(ctx: Context) {
   const identity = getIdentity(ctx);
   const session = await stateService.getSession(identity.userId);
 

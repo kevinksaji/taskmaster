@@ -7,7 +7,13 @@ import { epicService } from '../services/epicService';
 import { taskService } from '../services/taskService';
 import { UserFacingError } from '../utils/errors';
 
+// This file is the bot's presentation layer for reusable Telegram responses.
+// Routers and commands decide *what* should happen, while these helpers decide
+// *how* the next bot message should look and whether an inline-button screen
+// should replace the current message or send a new one.
 async function sendOrEdit(ctx: Context, text: string, replyMarkup?: InlineKeyboardMarkup, replace = false) {
+  // Callback-query flows usually edit the existing bot message in place so the
+  // chat stays compact. Plain command and text flows send a fresh message.
   if (replace && 'editMessageText' in ctx && typeof ctx.editMessageText === 'function') {
     await ctx.editMessageText(text, {
       reply_markup: replyMarkup,
@@ -21,6 +27,8 @@ async function sendOrEdit(ctx: Context, text: string, replyMarkup?: InlineKeyboa
 }
 
 export const botReplies = {
+  // Show the first `/t` browser screen: one button per epic, then let the user
+  // drill into that epic's tasks.
   async showTaskEpicBrowser(ctx: Context, telegramUserId: string, replace = false) {
     const epics = await epicService.listEpics(telegramUserId);
     const text = epics.length === 0
@@ -30,6 +38,8 @@ export const botReplies = {
     await sendOrEdit(ctx, text, buildTaskEpicBrowserKeyboard(epics), replace);
   },
 
+  // Show all tasks inside one epic. Each task button deletes that task, so this
+  // screen doubles as the task-completion view for the simplified bot flow.
   async showTasksForEpic(ctx: Context, telegramUserId: string, epicId: string, replace = false) {
     const epic = await epicService.getEpicOrThrow(telegramUserId, epicId);
     const tasks = await taskService.listTasksForEpic(telegramUserId, epicId);
@@ -40,6 +50,8 @@ export const botReplies = {
     await sendOrEdit(ctx, text, buildTaskListKeyboard(tasks, epicId), replace);
   },
 
+  // Show the `/e` browser screen where selecting an epic deletes it together
+  // with its tasks.
   async showEpicDeleteBrowser(ctx: Context, telegramUserId: string, replace = false) {
     const epics = await epicService.listEpics(telegramUserId);
     const text = epics.length === 0
@@ -49,6 +61,9 @@ export const botReplies = {
     await sendOrEdit(ctx, text, buildEpicDeleteKeyboard(epics), replace);
   },
 
+  // After the user sends `t ...`, this screen asks where the whole staged task
+  // batch should go. The inline keyboard can either pick an existing epic or
+  // branch into the follow-up epic-creation step.
   async showTaskBatchEpicPicker(ctx: Context, telegramUserId: string, replace = false) {
     const epics = await epicService.listEpics(telegramUserId);
     const text = epics.length === 0
@@ -58,6 +73,7 @@ export const botReplies = {
     await sendOrEdit(ctx, text, buildTaskBatchEpicKeyboard(epics), replace);
   },
 
+  // Shared terminal messages for small flow transitions.
   async showCancelled(ctx: Context, replace = false) {
     await sendOrEdit(ctx, 'Cancelled.', undefined, replace);
   },
@@ -66,6 +82,8 @@ export const botReplies = {
     await sendOrEdit(ctx, 'Send the new epic name for these pending tasks.', undefined, replace);
   },
 
+  // A stale callback means the inline button no longer maps to a valid session
+  // state, usually because the user already completed or cancelled that flow.
   async showStaleAction(ctx: Context) {
     throw new UserFacingError('That action expired. Please run the command again.');
   },

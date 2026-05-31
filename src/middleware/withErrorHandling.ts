@@ -1,6 +1,6 @@
 import { Context } from 'telegraf';
 
-import { getErrorMessage, UserFacingError } from '../utils/errors';
+import { UserFacingError } from '../utils/errors';
 import { logger } from '../utils/logger';
 
 export function withErrorHandling(handler: (ctx: Context) => Promise<void>) {
