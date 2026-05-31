@@ -8,7 +8,7 @@ import { getIdentity } from '../utils/telegram';
 async function replyWithPrimaryNavigation(ctx: Context) {
   const identity = getIdentity(ctx);
   await sessionService.markStarted(identity.userId);
-  await botReplies.showOverview(ctx, identity.userId, '🧭 Taskmaster is ready');
+  await botReplies.showOverview(ctx, identity.userId, '🧭 Taskmaster is ready.');
 }
 
 export function registerStartCommand(bot: Telegraf) {
