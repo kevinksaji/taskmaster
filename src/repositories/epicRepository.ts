@@ -1,10 +1,4 @@
-import { Prisma } from '@prisma/client';
-
 import { prisma } from '../lib/prisma';
-
-export type EpicWithTaskCount = Prisma.EpicGetPayload<{
-  include: { _count: { select: { tasks: true } } };
-}>;
 
 export const epicRepository = {
   listByUser(telegramUserId: string) {
@@ -41,14 +35,6 @@ export const epicRepository = {
   delete(id: string, telegramUserId: string) {
     return prisma.epic.deleteMany({
       where: { id, telegramUserId },
-    });
-  },
-
-  listTasks(id: string, telegramUserId: string) {
-    return prisma.task.findMany({
-      where: { epicId: id, telegramUserId },
-      orderBy: [{ createdAt: 'desc' }],
-      include: { epic: true },
     });
   },
 };
