@@ -65,7 +65,10 @@ Create a local `.env` file from `.env.example` and set:
    ```bash
    npm run prisma:migrate -- --name init
    ```
-4. For production, apply migrations through your deployment workflow before or during release.
+4. For production, apply committed migrations with:
+   ```bash
+   npm run prisma:deploy
+   ```
 
 ## Local development setup
 
@@ -104,7 +107,10 @@ Create a local `.env` file from `.env.example` and set:
    - `APP_BASE_URL`
 3. Set `APP_BASE_URL` to the final Vercel production domain.
 4. Deploy the project.
-5. Run Prisma migrations against the production Neon database.
+5. Apply Prisma migrations against the production Neon database:
+   ```bash
+   npm run prisma:deploy
+   ```
 6. Register the Telegram webhook after deployment with `npm run webhook:set` from a machine that has the same environment variables.
 
 ## Webhook behavior
@@ -187,6 +193,7 @@ This project does not rely on in-memory Telegraf session storage. Instead:
 - If the bot does not respond, confirm the webhook is registered and points to the right `APP_BASE_URL`.
 - If Telegram returns `403`, verify `TELEGRAM_WEBHOOK_SECRET` matches the header secret configured in `setWebhook`.
 - If Prisma fails to connect, verify the pooled Prisma connection string in `STORAGE_POSTGRES_PRISMA_URL` and the direct connection string in `STORAGE_POSTGRES_URL_NON_POOLING`.
+- If you see errors that tables like `ConversationState`, `Epic`, or `Task` do not exist, the new database has not had Prisma migrations applied yet. Run `npm run prisma:deploy` against that database.
 - If local development does not receive updates, confirm your tunnel URL is live and `APP_BASE_URL` matches it exactly.
 - If commands do not appear in Telegram, trigger the webhook once after deployment so the bot can register commands on startup.
 
@@ -207,7 +214,7 @@ This project does not rely on in-memory Telegraf session storage. Instead:
 2. Import the repository into Vercel.
 3. Add `BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `STORAGE_POSTGRES_PRISMA_URL`, `STORAGE_POSTGRES_URL_NON_POOLING`, and `APP_BASE_URL` in Vercel.
 4. Deploy the app.
-5. Apply Prisma migrations to the Neon production database.
+5. Apply Prisma migrations to the Neon production database with `npm run prisma:deploy`.
 6. Run `npm run webhook:set` with the production `APP_BASE_URL`.
 
 ## How to set the Telegram webhook
