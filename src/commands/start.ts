@@ -1,5 +1,6 @@
 import { Context, Telegraf } from 'telegraf';
 
+import { botReplies } from '../bot/replies';
 import { sessionService } from '../services/sessionService';
 import { withErrorHandling } from '../middleware/withErrorHandling';
 import { getIdentity } from '../utils/telegram';
@@ -11,6 +12,7 @@ async function replyWithPrimaryNavigation(ctx: Context) {
   const session = await sessionService.getSession(identity.userId);
 
   if (session.started) {
+    await botReplies.showOverview(ctx, identity.userId, '🧭 Taskmaster is ready');
     return;
   }
 

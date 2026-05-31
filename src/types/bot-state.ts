@@ -8,6 +8,7 @@ export type BotOperationKind = (typeof BOT_OPERATION_KINDS)[keyof typeof BOT_OPE
 
 export type BotSession = {
   started: boolean;
+  lastQuoteText: string | null;
   operation:
     | { kind: typeof BOT_OPERATION_KINDS.IDLE }
     | { kind: typeof BOT_OPERATION_KINDS.TASK_BATCH_PICK_EPIC; taskNames: string[] }
@@ -16,5 +17,6 @@ export type BotSession = {
 
 export const DEFAULT_BOT_SESSION: BotSession = {
   started: false,
+  lastQuoteText: null,
   operation: { kind: BOT_OPERATION_KINDS.IDLE },
 };
