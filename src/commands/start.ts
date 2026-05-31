@@ -1,6 +1,6 @@
 import { Context, Telegraf } from 'telegraf';
 
-import { stateService } from '../services/navigationService';
+import { sessionService } from '../services/sessionService';
 import { withErrorHandling } from '../middleware/withErrorHandling';
 import { getIdentity } from '../utils/telegram';
 
@@ -8,13 +8,13 @@ const startMessage = 'Taskmaster is ready.';
 
 async function replyWithPrimaryNavigation(ctx: Context) {
   const identity = getIdentity(ctx);
-  const session = await stateService.getSession(identity.userId);
+  const session = await sessionService.getSession(identity.userId);
 
   if (session.started) {
     return;
   }
 
-  await stateService.markStarted(identity.userId, identity.chatId);
+  await sessionService.markStarted(identity.userId);
   await ctx.reply(startMessage);
 }
 

@@ -1,8 +1,8 @@
 import { Context } from 'telegraf';
 
 import { botReplies } from '../bot/replies';
-import { stateService } from '../services/navigationService';
 import { epicService } from '../services/epicService';
+import { sessionService } from '../services/sessionService';
 import { taskService } from '../services/taskService';
 import { BOT_OPERATION_KINDS } from '../types/bot-state';
 import { UserFacingError } from '../utils/errors';
@@ -43,7 +43,7 @@ export async function handleCallbackQuery(ctx: Context) {
         await botReplies.showEpicDeleteBrowser(ctx, identity.userId, true);
         return;
       case 'ts': {
-        const session = await stateService.getSession(identity.userId);
+        const session = await sessionService.getSession(identity.userId);
         if (session.operation.kind !== BOT_OPERATION_KINDS.TASK_BATCH_PICK_EPIC) {
           throw new UserFacingError('That task batch expired. Send t <task name> again.');
         }
@@ -53,24 +53,24 @@ export async function handleCallbackQuery(ctx: Context) {
           epicId: String(arg1 ?? ''),
           names: session.operation.taskNames,
         });
-        await stateService.clearOperation(identity.userId, identity.chatId);
+        await sessionService.clearOperation(identity.userId);
         await answerCallback(ctx, 'Tasks added');
         await botReplies.showTasksForEpic(ctx, identity.userId, String(arg1 ?? ''), true);
         return;
       }
       case 'tc': {
-        const session = await stateService.getSession(identity.userId);
+        const session = await sessionService.getSession(identity.userId);
         if (session.operation.kind !== BOT_OPERATION_KINDS.TASK_BATCH_PICK_EPIC) {
           throw new UserFacingError('That task batch expired. Send t <task name> again.');
         }
 
-        await stateService.startTaskBatchEpicCreate(identity.userId, identity.chatId, session.operation.taskNames);
+        await sessionService.startTaskBatchEpicCreate(identity.userId, session.operation.taskNames);
         await answerCallback(ctx);
         await botReplies.showTaskBatchNeedsEpicName(ctx, true);
         return;
       }
       case 'cx':
-        await stateService.clearOperation(identity.userId, identity.chatId);
+        await sessionService.clearOperation(identity.userId);
         await answerCallback(ctx, 'Cancelled');
         await botReplies.showCancelled(ctx, true);
         return;
