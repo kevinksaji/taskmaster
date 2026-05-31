@@ -38,23 +38,10 @@ export const epicRepository = {
     });
   },
 
-  update(id: string, telegramUserId: string, data: { name?: string }) {
-    return prisma.epic.updateMany({
-      where: { id, telegramUserId },
-      data,
-    });
-  },
-
-  delete(id: string, telegramUserId: string) {
-    return prisma.epic.deleteMany({
-      where: { id, telegramUserId },
-    });
-  },
-
   listTasks(id: string, telegramUserId: string) {
     return prisma.task.findMany({
       where: { epicId: id, telegramUserId },
-      orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+      orderBy: [{ createdAt: 'desc' }],
       include: { epic: true },
     });
   },

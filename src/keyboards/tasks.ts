@@ -1,18 +1,13 @@
-import { TaskStatus } from '@prisma/client';
 import { Markup } from 'telegraf';
 
 import { TaskFilter } from '../types/domain';
-import {
-  taskListNavData,
-  taskStatusData,
-} from '../utils/callback-data';
+import { taskListNavData } from '../utils/callback-data';
 import { paginate } from '../utils/pagination';
 import { inlineKeyboard, paginationRow } from './common';
 
 type TaskLike = {
   id: string;
   name: string;
-  status: TaskStatus;
   epic: { name: string };
 };
 
@@ -35,16 +30,10 @@ export function buildTaskListKeyboard(tasks: TaskLike[], filter: TaskFilter, pag
 
   return inlineKeyboard(rows);
 }
-export function buildTaskActionKeyboard(taskId: string, status: TaskStatus) {
-  const actionButton = status === TaskStatus.DONE
-    ? Markup.button.callback('Done', 'noop')
-    : Markup.button.callback('Mark as done', taskStatusData(taskId, TaskStatus.DONE));
 
+export function buildTaskActionKeyboard(taskId: string) {
   return inlineKeyboard([
-    [
-      actionButton,
-      Markup.button.callback('Delete', `tx|${taskId}`),
-    ],
+    [Markup.button.callback('Complete', `tx|${taskId}`)],
   ]);
 }
 

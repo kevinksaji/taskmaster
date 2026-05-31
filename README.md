@@ -8,10 +8,9 @@ Taskmaster lets each Telegram user manage their own backlog without memorising I
 
 Core capabilities:
 
-- Epic create, view, and delete flows
-- Task create, view, and delete flows
+- Epic create and view flows
+- Task create, view, and complete flows
 - Persistent `/tasks` and `/epics` reply-keyboard buttons for quick navigation
-- Todo, done, overdue, and today task filters
 - Durable multi-step flows backed by PostgreSQL through Prisma
 - Stateless webhook processing for Vercel serverless deployment
 - Ownership checks on every epic and task operation
@@ -26,7 +25,7 @@ The application follows a layered structure:
 - `src/services`: Business rules and ownership enforcement
 - `src/repositories`: Prisma data access helpers
 - `src/keyboards`: Reusable inline keyboard builders
-- `src/utils`: Validation, formatting, logging, date parsing, callback helpers
+- `src/utils`: Validation, formatting, logging, and callback helpers
 - `src/api`: Shared webhook processing logic
 - `api/telegram/webhook.ts`: Vercel webhook entrypoint
 - `prisma/schema.prisma`: Database schema for epics, tasks, and durable conversation state
@@ -170,20 +169,7 @@ The persistent `/tasks` and `/epics` buttons jump straight into the main command
 1. User sends `/task_create`
 2. Bot asks for the task name
 3. Bot asks the user to pick an epic with inline buttons
-4. Bot asks for a due date or `skip`
-5. Bot stores the task and shows follow-up buttons
-
-## Date handling
-
-Taskmaster supports these due date inputs:
-
-- `2026-06-15`
-- `tomorrow`
-- `next monday`
-- `in 3 days`
-- `skip`
-
-Dates are normalised and stored in PostgreSQL through Prisma.
+4. Bot stores the task immediately and shows follow-up buttons
 
 ## Stateless webhook notes
 

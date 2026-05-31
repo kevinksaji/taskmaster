@@ -1,7 +1,7 @@
-import { TaskStatus } from '@prisma/client';
 import { Context } from 'telegraf';
 
 import { botReplies } from '../bot/replies';
+import { buildTaskCreatedKeyboard } from '../keyboards/followups';
 import { conversationService } from '../services/conversationService';
 import { epicService } from '../services/epicService';
 import { taskService } from '../services/taskService';
@@ -9,6 +9,7 @@ import { FlowType } from '../types/conversation';
 import { parseTaskFilter } from '../types/domain';
 import { EPIC_PURPOSE } from '../utils/callback-data';
 import { UserFacingError } from '../utils/errors';
+import { formatTaskDetails } from '../utils/formatters';
 import { logger } from '../utils/logger';
 import { answerCallback, deleteCurrentMessage, getIdentity } from '../utils/telegram';
 import { startEpicCreateFlow, startTaskCreateFlow } from '../scenes/flowStarters';
@@ -47,9 +48,6 @@ export async function handleCallbackQuery(ctx: Context) {
       case 'es':
         await handleEpicSelection(ctx, identity.userId, identity.chatId, String(arg1 ?? ''), String(arg2 ?? ''));
         return;
-      case 'ed':
-        await handleEpicDelete(ctx, identity.userId, String(arg1 ?? ''));
-        return;
       case 'et':
         await botReplies.showTasksForEpic(ctx, identity.userId, String(arg1 ?? ''), true);
         return;
@@ -57,10 +55,6 @@ export async function handleCallbackQuery(ctx: Context) {
         await botReplies.showTasksList(ctx, identity.userId, parseTaskFilter(arg1), Number(arg2 ?? '0'), true);
         return;
       case 'tv':
-        await botReplies.showTaskDetails(ctx, identity.userId, String(arg1 ?? ''), true);
-        return;
-      case 'tt':
-        await taskService.setTaskStatus(identity.userId, String(arg1 ?? ''), TaskStatus.DONE);
         await botReplies.showTaskDetails(ctx, identity.userId, String(arg1 ?? ''), true);
         return;
       case 'tx':
@@ -94,34 +88,21 @@ async function handleEpicSelection(ctx: Context, userId: string, chatId: string,
         throw new UserFacingError('That task creation flow expired. Start /task_create again.');
       }
 
-      await conversationService.updateFlow(userId, chatId, {
-        flow: FlowType.TASK_CREATE,
-        step: 'WAIT_DUE_DATE',
-        payload: {
-          ...state.payload,
-          epicId,
-        },
+      const task = await taskService.createTask({
+        telegramUserId: userId,
+        name: String(state.payload.name ?? ''),
+        epicId,
       });
-      await ctx.reply('Epic selected. Send a due date, or type skip. Examples: 2026-06-15, tomorrow, next monday, in 3 days.');
+
+      await conversationService.clearFlow(userId);
+      await ctx.reply(`✅ Task created.\n\n${formatTaskDetails(task)}`, {
+        reply_markup: buildTaskCreatedKeyboard(task.id),
+      });
       return;
     }
     default:
       throw new UserFacingError('That button expired. Please run the command again.');
   }
-}
-
-async function handleEpicDelete(ctx: Context, userId: string, epicId: string) {
-  const deleted = await epicService.deleteEpic({
-    telegramUserId: userId,
-    epicId,
-    cascade: true,
-  });
-
-  await hideDeletedEntity(ctx, deleted.epic.id, {
-    listPrefix: `et|${deleted.epic.id}`,
-    selectionPrefix: `es|`,
-    detailActionPrefix: `ed|${deleted.epic.id}`,
-  });
 }
 
 async function handleTaskDelete(ctx: Context, userId: string, taskId: string) {
