@@ -10,6 +10,7 @@ const helpMessage = [
   '/epic_create - Create an epic in a guided flow',
   '/tasks - Open the task flow',
   '/task_create - Create a task in a guided flow',
+  '/back - Return to the main tasks or epics chooser',
   '/cancel - Cancel the current flow',
   '',
   'Examples:',

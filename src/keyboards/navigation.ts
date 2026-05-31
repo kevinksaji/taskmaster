@@ -5,7 +5,7 @@ export const PRIMARY_NAVIGATION_LABELS = {
   EPICS: '/epics',
   TASK_CREATE: '/task_create',
   EPIC_CREATE: '/epic_create',
-  MAIN: '/start',
+  BACK: '/back',
 } as const;
 
 export function buildPrimaryNavigationKeyboard(): ReplyKeyboardMarkup {
@@ -24,22 +24,22 @@ export function buildTasksFlowKeyboard(): ReplyKeyboardMarkup {
   return {
     keyboard: [[
       { text: PRIMARY_NAVIGATION_LABELS.TASK_CREATE },
-      { text: PRIMARY_NAVIGATION_LABELS.MAIN },
+      { text: PRIMARY_NAVIGATION_LABELS.BACK },
     ]],
     resize_keyboard: true,
     is_persistent: true,
-    input_field_placeholder: 'Create a task or go back to main',
+    input_field_placeholder: 'Create a task or go back',
   };
 }
 
 export function buildEpicsFlowKeyboard(): ReplyKeyboardMarkup {
   return {
     keyboard: [[
-      { text: PRIMARY_NAVIGATION_LABELS.MAIN },
+      { text: PRIMARY_NAVIGATION_LABELS.BACK },
       { text: PRIMARY_NAVIGATION_LABELS.EPIC_CREATE },
     ]],
     resize_keyboard: true,
     is_persistent: true,
-    input_field_placeholder: 'Go back to main or create an epic',
+    input_field_placeholder: 'Go back or create an epic',
   };
 }

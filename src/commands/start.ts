@@ -12,19 +12,27 @@ const startMessage = [
   '',
   'Tasks flow:',
   '• Lists every task as Task - Epic',
-  '• Clicking a task shows Mark as done and Delete',
+  '• Clicking a task shows the completion action',
   '',
   'Epics flow:',
   '• Lists every epic as a button',
   '• Clicking an epic opens the tasks in that epic',
 ].join('\n');
 
+export async function replyWithPrimaryNavigation(ctx: Parameters<Telegraf['start']>[0] extends never ? never : any) {
+  const identity = getIdentity(ctx);
+  await conversationService.clearFlow(identity.userId);
+  await ctx.reply(startMessage, {
+    reply_markup: buildPrimaryNavigationKeyboard(),
+  });
+}
+
 export function registerStartCommand(bot: Telegraf) {
   bot.start(withErrorHandling(async (ctx) => {
-    const identity = getIdentity(ctx);
-    await conversationService.clearFlow(identity.userId);
-    await ctx.reply(startMessage, {
-      reply_markup: buildPrimaryNavigationKeyboard(),
-    });
+    await replyWithPrimaryNavigation(ctx);
+  }));
+
+  bot.command('back', withErrorHandling(async (ctx) => {
+    await replyWithPrimaryNavigation(ctx);
   }));
 }
