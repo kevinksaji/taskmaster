@@ -1,7 +1,7 @@
 import { Context } from 'telegraf';
 
 import { botReplies } from '../bot/replies';
-import { buildTaskCreatedKeyboard } from '../keyboards/followups';
+import { buildPrimaryNavigationKeyboard, buildTasksFlowKeyboard } from '../keyboards/navigation';
 import { conversationService } from '../services/conversationService';
 import { epicService } from '../services/epicService';
 import { taskService } from '../services/taskService';
@@ -31,7 +31,9 @@ export async function handleCallbackQuery(ctx: Context) {
         return;
       case 'ca':
         await conversationService.clearFlow(identity.userId);
-        await ctx.reply('Cancelled the current flow.');
+        await ctx.reply('Returned to the main menu.', {
+          reply_markup: buildPrimaryNavigationKeyboard(),
+        });
         return;
       case 'ne':
         await startEpicCreateFlow(ctx, identity);
@@ -96,7 +98,7 @@ async function handleEpicSelection(ctx: Context, userId: string, chatId: string,
 
       await conversationService.clearFlow(userId);
       await ctx.reply(`✅ Task created.\n\n${formatTaskDetails(task)}`, {
-        reply_markup: buildTaskCreatedKeyboard(task.id),
+        reply_markup: buildTasksFlowKeyboard(),
       });
       return;
     }

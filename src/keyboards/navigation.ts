@@ -1,11 +1,11 @@
 import { ReplyKeyboardMarkup } from 'telegraf/types';
 
 export const PRIMARY_NAVIGATION_LABELS = {
-  TASKS: '/tasks',
-  EPICS: '/epics',
-  TASK_CREATE: '/task_create',
-  EPIC_CREATE: '/epic_create',
-  BACK: '/back',
+  TASKS: 'Tasks',
+  EPICS: 'Epics',
+  TASK_CREATE: 'Create task',
+  EPIC_CREATE: 'Create epic',
+  BACK: 'Back',
 } as const;
 
 export function buildPrimaryNavigationKeyboard(): ReplyKeyboardMarkup {
@@ -16,7 +16,7 @@ export function buildPrimaryNavigationKeyboard(): ReplyKeyboardMarkup {
     ]],
     resize_keyboard: true,
     is_persistent: true,
-    input_field_placeholder: 'Choose /tasks or /epics',
+    input_field_placeholder: 'Choose Tasks or Epics',
   };
 }
 

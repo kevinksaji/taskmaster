@@ -6,5 +6,4 @@ export const TELEGRAM_COMMANDS = [
   { command: 'epic_create', description: 'Create a new epic' },
   { command: 'tasks', description: 'Open the task flow' },
   { command: 'task_create', description: 'Create a new task' },
-  { command: 'cancel', description: 'Cancel the current flow' },
 ] as const;
