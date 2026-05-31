@@ -114,7 +114,7 @@ export const botReplies = {
 
   // Shared terminal messages for small flow transitions.
   async showCancelled(ctx: Context, telegramUserId: string, replace = false) {
-    const text = await buildOverviewText(telegramUserId, '🧹 Reset complete');
+    const text = await buildOverviewText(telegramUserId, '🧭 Taskmaster is ready.');
     await sendOrEdit(ctx, text, undefined, replace, 'HTML');
   },
 
