@@ -31,7 +31,7 @@ The application follows a layered structure:
 - `api/telegram/webhook.ts`: Vercel webhook entrypoint
 - `prisma/schema.prisma`: Database schema for epics, tasks, and persisted operation state
 
-The bot stays stateless at the process level for browsing because inline callback payloads carry the selected entity IDs. It persists a small `NavigationState` record only for pending message-driven task creation, so a user can send `t item one\nitem two` first and choose or create the destination epic in the next step.
+The bot stays stateless at the process level for browsing because inline callback payloads carry the selected entity IDs. It persists a small `UserSession` record only for pending message-driven task creation, so a user can send `t item one\nitem two` first and choose or create the destination epic in the next step.
 
 ## Required environment variables
 
@@ -200,7 +200,7 @@ Message prefixes:
 
 This project does not rely on in-memory Telegraf session storage. Instead:
 
-- Each user gets a small persisted `NavigationState` record
+- Each user gets a small persisted `UserSession` record
 - The record stores whether `/start` has already been shown and whether a task batch is waiting for epic selection or epic creation
 - The same bot behavior works locally and in Vercel serverless functions
 

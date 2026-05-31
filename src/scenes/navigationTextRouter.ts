@@ -2,7 +2,7 @@ import { Context } from 'telegraf';
 
 import { botReplies } from '../bot/replies';
 import { epicService } from '../services/epicService';
-import { stateService } from '../services/navigationService';
+import { sessionService } from '../services/sessionService';
 import { taskService } from '../services/taskService';
 import { BOT_OPERATION_KINDS } from '../types/bot-state';
 import { getIdentity, isCommandText } from '../utils/telegram';
@@ -47,7 +47,7 @@ export async function routeNavigationText(ctx: Context) {
   // interpreted when the user is already inside a pending operation.
   const taskLines = parsePrefixedLines(text, 't');
   if (taskLines) {
-    await stateService.startTaskBatch(identity.userId, identity.chatId, taskLines);
+    await sessionService.startTaskBatch(identity.userId, taskLines);
     await botReplies.showTaskBatchEpicPicker(ctx, identity.userId);
     return;
   }
@@ -69,7 +69,7 @@ export async function routeNavigationText(ctx: Context) {
     return;
   }
 
-  const session = await stateService.getSession(identity.userId);
+  const session = await sessionService.getSession(identity.userId);
   if (session.operation.kind !== BOT_OPERATION_KINDS.TASK_BATCH_CREATE_EPIC_NAME) {
     return;
   }
@@ -91,7 +91,7 @@ export async function routeNavigationText(ctx: Context) {
     names: session.operation.taskNames,
   });
 
-  await stateService.clearOperation(identity.userId, identity.chatId);
+  await sessionService.clearOperation(identity.userId);
   await ctx.reply(`Created ${epic.name} and added ${session.operation.taskNames.length} task${session.operation.taskNames.length > 1 ? 's' : ''}.`);
   await botReplies.showTasksForEpic(ctx, identity.userId, epic.id);
 }

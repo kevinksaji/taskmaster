@@ -33,15 +33,12 @@ model Task {
   @@index([epicId])
 }
 
-model NavigationState {
+model UserSession {
   id             String   @id @default(cuid())
   telegramUserId String   @unique
-  chatId         String
-  currentView    String
-  history        Json?
-  itemMap        Json?
+  started        Boolean  @default(false)
+  operationKind  String   @default("IDLE")
+  sessionData    Json?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-
-  @@index([chatId])
 }
