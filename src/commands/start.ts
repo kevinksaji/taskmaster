@@ -1,23 +1,21 @@
 import { Context, Telegraf } from 'telegraf';
 
-import { botReplies } from '../bot/replies';
+import { stateService } from '../services/navigationService';
 import { withErrorHandling } from '../middleware/withErrorHandling';
+import { getIdentity } from '../utils/telegram';
 
-const startMessage = [
-  '👋 Welcome to Taskmaster.',
-  '',
-  'Tap Tasks to see every task as a button.',
-  'Tap a task button to complete it immediately.',
-  '',
-  'Tap Epics to see every epic as a button.',
-  'Tap an epic button to delete that epic and all of its tasks immediately.',
-  '',
-  'Use Back in the hub to return to the previous screen.',
-].join('\n');
+const startMessage = 'Taskmaster is ready.';
 
 export async function replyWithPrimaryNavigation(ctx: Context) {
-  await ctx.reply(startMessage, { reply_markup: undefined });
-  await botReplies.showStart(ctx);
+  const identity = getIdentity(ctx);
+  const session = await stateService.getSession(identity.userId);
+
+  if (session.started) {
+    return;
+  }
+
+  await stateService.markStarted(identity.userId, identity.chatId);
+  await ctx.reply(startMessage);
 }
 
 export function registerStartCommand(bot: Telegraf) {

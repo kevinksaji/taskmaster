@@ -1,8 +1,10 @@
 import { Telegraf } from 'telegraf';
 
 import { env } from '../config/env';
-import { registerCommands } from '../commands';
 import { handleCallbackQuery } from '../actions/callbackRouter';
+import { registerCommands } from '../commands';
+import { withErrorHandling } from '../middleware/withErrorHandling';
+import { routeNavigationText } from '../scenes/navigationTextRouter';
 import { ensureBotBootstrap } from '../services/bootstrapService';
 import { logger } from '../utils/logger';
 
@@ -22,7 +24,12 @@ export async function getBot() {
     });
 
     registerCommands(bot);
-    bot.on('callback_query', handleCallbackQuery);
+    bot.on('callback_query', withErrorHandling(async (ctx) => {
+      await handleCallbackQuery(ctx);
+    }));
+    bot.on('text', withErrorHandling(async (ctx) => {
+      await routeNavigationText(ctx);
+    }));
 
     bot.catch((error, ctx) => {
       logger.error('telegram.bot.unhandled', {

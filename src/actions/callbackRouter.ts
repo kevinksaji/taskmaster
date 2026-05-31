@@ -1,10 +1,10 @@
 import { Context } from 'telegraf';
 
 import { botReplies } from '../bot/replies';
+import { stateService } from '../services/navigationService';
 import { epicService } from '../services/epicService';
 import { taskService } from '../services/taskService';
-import { HUB_VIEWS } from '../types/navigation';
-import { decodeHistory, decodeView } from '../utils/callback-data';
+import { BOT_OPERATION_KINDS } from '../types/bot-state';
 import { UserFacingError } from '../utils/errors';
 import { logger } from '../utils/logger';
 import { answerCallback, getIdentity } from '../utils/telegram';
@@ -14,34 +14,69 @@ export async function handleCallbackQuery(ctx: Context) {
     return;
   }
 
-  await answerCallback(ctx);
-
   const identity = getIdentity(ctx);
   const data = String(ctx.callbackQuery.data);
   const [kind, arg1, arg2] = data.split('|');
 
   try {
     switch (kind) {
-      case 'noop':
+      case 'tb':
+        await answerCallback(ctx);
+        await botReplies.showTaskEpicBrowser(ctx, identity.userId, true);
         return;
-      case 'hv':
-        await handleViewNavigation(ctx, identity.userId, decodeView(arg1), decodeHistory(arg2));
-        return;
-      case 'bk':
-        await handleBackNavigation(ctx, identity.userId, decodeHistory(arg1));
+      case 'tv':
+        await answerCallback(ctx);
+        await botReplies.showTasksForEpic(ctx, identity.userId, String(arg1 ?? ''), true);
         return;
       case 'td':
         await taskService.deleteTask(identity.userId, String(arg1 ?? ''));
         await answerCallback(ctx, 'Task completed');
-        await botReplies.showTasksList(ctx, identity.userId, decodeHistory(arg2), true);
+        await botReplies.showTasksForEpic(ctx, identity.userId, String(arg2 ?? ''), true);
         return;
-      case 'ec':
+      case 'eb':
+        await answerCallback(ctx);
+        await botReplies.showEpicDeleteBrowser(ctx, identity.userId, true);
+        return;
+      case 'ed':
         await epicService.deleteEpic(identity.userId, String(arg1 ?? ''));
-        await answerCallback(ctx, 'Epic cleared');
-        await botReplies.showEpicsList(ctx, identity.userId, decodeHistory(arg2), true);
+        await answerCallback(ctx, 'Epic deleted');
+        await botReplies.showEpicDeleteBrowser(ctx, identity.userId, true);
+        return;
+      case 'ts': {
+        const session = await stateService.getSession(identity.userId);
+        if (session.operation.kind !== BOT_OPERATION_KINDS.TASK_BATCH_PICK_EPIC) {
+          throw new UserFacingError('That task batch expired. Send t <task name> again.');
+        }
+
+        await taskService.createTasks({
+          telegramUserId: identity.userId,
+          epicId: String(arg1 ?? ''),
+          names: session.operation.taskNames,
+        });
+        await stateService.clearOperation(identity.userId, identity.chatId);
+        await answerCallback(ctx, 'Tasks added');
+        await botReplies.showTasksForEpic(ctx, identity.userId, String(arg1 ?? ''), true);
+        return;
+      }
+      case 'tc': {
+        const session = await stateService.getSession(identity.userId);
+        if (session.operation.kind !== BOT_OPERATION_KINDS.TASK_BATCH_PICK_EPIC) {
+          throw new UserFacingError('That task batch expired. Send t <task name> again.');
+        }
+
+        await stateService.startTaskBatchEpicCreate(identity.userId, identity.chatId, session.operation.taskNames);
+        await answerCallback(ctx);
+        await botReplies.showTaskBatchNeedsEpicName(ctx, true);
+        return;
+      }
+      case 'cx':
+        await stateService.clearOperation(identity.userId, identity.chatId);
+        await answerCallback(ctx, 'Cancelled');
+        await botReplies.showCancelled(ctx, true);
         return;
       default:
-        await ctx.reply('That action is no longer available. Please run the command again.');
+        await answerCallback(ctx);
+        await botReplies.showStaleAction(ctx);
     }
   } catch (error) {
     logger.error('telegram.callback.failed', {
@@ -55,38 +90,4 @@ export async function handleCallbackQuery(ctx: Context) {
 
     await ctx.reply(message);
   }
-}
-
-async function handleViewNavigation(ctx: Context, userId: string, view: ReturnType<typeof decodeView>, history: ReturnType<typeof decodeHistory>) {
-  if (view === HUB_VIEWS.TASKS) {
-    await botReplies.showTasksList(ctx, userId, history, true);
-    return;
-  }
-
-  if (view === HUB_VIEWS.EPICS) {
-    await botReplies.showEpicsList(ctx, userId, history, true);
-    return;
-  }
-
-  await botReplies.showStart(ctx, true);
-}
-
-async function handleBackNavigation(ctx: Context, userId: string, history: ReturnType<typeof decodeHistory>) {
-  // Back is derived entirely from the callback payload. That keeps the bot
-  // server stateless for navigation and removes the need for a database-backed
-  // conversation flow just to move between list screens.
-  const previousView = history.at(-1) ?? HUB_VIEWS.HOME;
-  const previousHistory = history.slice(0, -1);
-
-  if (previousView === HUB_VIEWS.TASKS) {
-    await botReplies.showTasksList(ctx, userId, previousHistory, true);
-    return;
-  }
-
-  if (previousView === HUB_VIEWS.EPICS) {
-    await botReplies.showEpicsList(ctx, userId, previousHistory, true);
-    return;
-  }
-
-  await botReplies.showStart(ctx, true);
 }

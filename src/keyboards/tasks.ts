@@ -1,21 +1,34 @@
-import { Markup } from 'telegraf';
+import { showTaskEpicBrowserData, showEpicTasksData, deleteTaskData, selectTaskEpicData } from '../utils/callback-data';
+import { inlineKeyboard, toCallbackButton } from './common';
+import { buildBackAndCancelRow, buildCancelRow, buildCreateEpicAndCancelRow } from './navigation';
 
-import { HubView } from '../types/navigation';
-import { taskCompleteData } from '../utils/callback-data';
-import { inlineKeyboard } from './common';
-import { buildHubRow } from './navigation';
+type EpicLike = {
+  id: string;
+  name: string;
+};
 
 type TaskLike = {
   id: string;
   name: string;
-  epic: { name: string };
 };
 
-export function buildTaskListKeyboard(tasks: TaskLike[], history: HubView[]) {
+export function buildTaskEpicBrowserKeyboard(epics: EpicLike[]) {
   return inlineKeyboard([
-    buildHubRow('TASKS', history),
-    ...tasks.map((task) => [
-      Markup.button.callback(`${task.name} - ${task.epic.name}`, taskCompleteData(task.id, history)),
-    ]),
+    ...epics.map((epic) => [toCallbackButton(epic.name, showEpicTasksData(epic.id))]),
+    buildCancelRow(),
+  ]);
+}
+
+export function buildTaskListKeyboard(tasks: TaskLike[], epicId: string) {
+  return inlineKeyboard([
+    ...tasks.map((task) => [toCallbackButton(task.name, deleteTaskData(task.id, epicId))]),
+    buildBackAndCancelRow(showTaskEpicBrowserData()),
+  ]);
+}
+
+export function buildTaskBatchEpicKeyboard(epics: EpicLike[]) {
+  return inlineKeyboard([
+    ...epics.map((epic) => [toCallbackButton(epic.name, selectTaskEpicData(epic.id))]),
+    buildCreateEpicAndCancelRow(),
   ]);
 }

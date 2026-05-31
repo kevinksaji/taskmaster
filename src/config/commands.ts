@@ -1,6 +1,6 @@
 export const TELEGRAM_COMMANDS = [
-  { command: 'start', description: 'Welcome message and quick examples' },
-  { command: 'help', description: 'Show all commands and usage tips' },
-  { command: 'epics', description: 'Open the epic flow' },
-  { command: 'tasks', description: 'Open the task flow' },
+  { command: 'start', description: 'Initialize Taskmaster' },
+  { command: 't', description: 'Browse tasks by epic' },
+  { command: 'e', description: 'Browse epics to delete' },
+  { command: 'c', description: 'Cancel the current operation' },
 ] as const;

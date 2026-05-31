@@ -15,6 +15,27 @@ export const taskRepository = {
     });
   },
 
+  listByEpic(epicId: string, telegramUserId: string) {
+    return prisma.task.findMany({
+      where: { epicId, telegramUserId },
+      include: { epic: true },
+      orderBy: [{ createdAt: 'desc' }],
+    });
+  },
+
+  create(data: { name: string; epicId: string; telegramUserId: string }) {
+    return prisma.task.create({
+      data,
+      include: { epic: true },
+    });
+  },
+
+  createMany(data: Array<{ name: string; epicId: string; telegramUserId: string }>) {
+    return prisma.task.createMany({
+      data,
+    });
+  },
+
   findByIdForUser(id: string, telegramUserId: string) {
     return prisma.task.findFirst({
       where: { id, telegramUserId },

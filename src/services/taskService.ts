@@ -7,6 +7,37 @@ export const taskService = {
     return taskRepository.listByUser(telegramUserId);
   },
 
+  listTasksForEpic(telegramUserId: string, epicId: string) {
+    return taskRepository.listByEpic(epicId, telegramUserId);
+  },
+
+  async createTask(input: { telegramUserId: string; name: string; epicId: string }) {
+    await this.ensureEpicOwnership(input.telegramUserId, input.epicId);
+    return taskRepository.create(input);
+  },
+
+  async createTasks(input: { telegramUserId: string; epicId: string; names: string[] }) {
+    await this.ensureEpicOwnership(input.telegramUserId, input.epicId);
+
+    const names = input.names
+      .map((name) => name.trim())
+      .filter(Boolean);
+
+    if (names.length === 0) {
+      return [];
+    }
+
+    await taskRepository.createMany(
+      names.map((name) => ({
+        name,
+        epicId: input.epicId,
+        telegramUserId: input.telegramUserId,
+      })),
+    );
+
+    return taskRepository.listByEpic(input.epicId, input.telegramUserId);
+  },
+
   async getTaskOrThrow(telegramUserId: string, taskId: string) {
     const task = await taskRepository.findByIdForUser(taskId, telegramUserId);
     if (!task) {

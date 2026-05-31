@@ -4,8 +4,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("STORAGE_POSTGRES_PRISMA_URL")
-  directUrl = env("STORAGE_POSTGRES_URL_NON_POOLING")
+  url       = env("STORAGE_DATABASE_URL")
+  directUrl = env("STORAGE_DATABASE_URL_UNPOOLED")
 }
 
 model Epic {
@@ -31,4 +31,17 @@ model Task {
 
   @@index([telegramUserId])
   @@index([epicId])
+}
+
+model NavigationState {
+  id             String   @id @default(cuid())
+  telegramUserId String   @unique
+  chatId         String
+  currentView    String
+  history        Json?
+  itemMap        Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([chatId])
 }
