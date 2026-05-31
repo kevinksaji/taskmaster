@@ -1,14 +1,13 @@
 import { Prisma } from '@prisma/client';
 
 import { prisma } from '../lib/prisma';
-import { TaskFilter } from '../types/domain';
 
 export type TaskWithEpic = Prisma.TaskGetPayload<{
   include: { epic: true };
 }>;
 
 export const taskRepository = {
-  listByUser(telegramUserId: string, _filter: TaskFilter) {
+  listByUser(telegramUserId: string) {
     return prisma.task.findMany({
       where: { telegramUserId },
       include: { epic: true },
@@ -16,28 +15,30 @@ export const taskRepository = {
     });
   },
 
-  listByEpic(telegramUserId: string, epicId: string) {
+  listByEpic(epicId: string, telegramUserId: string) {
     return prisma.task.findMany({
-      where: { telegramUserId, epicId },
+      where: { epicId, telegramUserId },
       include: { epic: true },
       orderBy: [{ createdAt: 'desc' }],
+    });
+  },
+
+  create(data: { name: string; epicId: string; telegramUserId: string }) {
+    return prisma.task.create({
+      data,
+      include: { epic: true },
+    });
+  },
+
+  createMany(data: Array<{ name: string; epicId: string; telegramUserId: string }>) {
+    return prisma.task.createMany({
+      data,
     });
   },
 
   findByIdForUser(id: string, telegramUserId: string) {
     return prisma.task.findFirst({
       where: { id, telegramUserId },
-      include: { epic: true },
-    });
-  },
-
-  create(data: {
-    name: string;
-    epicId: string;
-    telegramUserId: string;
-  }) {
-    return prisma.task.create({
-      data,
       include: { epic: true },
     });
   },

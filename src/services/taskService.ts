@@ -1,12 +1,41 @@
 import { epicRepository } from '../repositories/epicRepository';
 import { taskRepository } from '../repositories/taskRepository';
-import { TaskFilter } from '../types/domain';
 import { UserFacingError } from '../utils/errors';
-import { taskNameSchema } from '../utils/validation';
 
 export const taskService = {
-  listTasks(telegramUserId: string, filter: TaskFilter) {
-    return taskRepository.listByUser(telegramUserId, filter);
+  listTasks(telegramUserId: string) {
+    return taskRepository.listByUser(telegramUserId);
+  },
+
+  listTasksForEpic(telegramUserId: string, epicId: string) {
+    return taskRepository.listByEpic(epicId, telegramUserId);
+  },
+
+  async createTask(input: { telegramUserId: string; name: string; epicId: string }) {
+    await this.ensureEpicOwnership(input.telegramUserId, input.epicId);
+    return taskRepository.create(input);
+  },
+
+  async createTasks(input: { telegramUserId: string; epicId: string; names: string[] }) {
+    await this.ensureEpicOwnership(input.telegramUserId, input.epicId);
+
+    const names = input.names
+      .map((name) => name.trim())
+      .filter(Boolean);
+
+    if (names.length === 0) {
+      return [];
+    }
+
+    await taskRepository.createMany(
+      names.map((name) => ({
+        name,
+        epicId: input.epicId,
+        telegramUserId: input.telegramUserId,
+      })),
+    );
+
+    return taskRepository.listByEpic(input.epicId, input.telegramUserId);
   },
 
   async getTaskOrThrow(telegramUserId: string, taskId: string) {
@@ -25,21 +54,6 @@ export const taskService = {
     }
 
     return epic;
-  },
-
-  async createTask(input: {
-    telegramUserId: string;
-    name: string;
-    epicId: string;
-  }) {
-    const name = taskNameSchema.parse(input.name);
-    await this.ensureEpicOwnership(input.telegramUserId, input.epicId);
-
-    return taskRepository.create({
-      telegramUserId: input.telegramUserId,
-      name,
-      epicId: input.epicId,
-    });
   },
 
   async deleteTask(telegramUserId: string, taskId: string) {

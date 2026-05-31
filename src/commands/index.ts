@@ -1,13 +1,13 @@
 import { Telegraf } from 'telegraf';
 
-import { registerEpicCommands } from './epics';
-import { registerHelpCommand } from './help';
+import { registerCancelCommands } from './c';
+import { registerEpicCommands } from './e';
 import { registerStartCommand } from './start';
-import { registerTaskCommands } from './tasks';
+import { registerTaskCommands } from './t';
 
 export function registerCommands(bot: Telegraf) {
   registerStartCommand(bot);
-  registerHelpCommand(bot);
   registerEpicCommands(bot);
   registerTaskCommands(bot);
+  registerCancelCommands(bot);
 }

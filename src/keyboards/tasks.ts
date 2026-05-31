@@ -1,44 +1,34 @@
-import { Markup } from 'telegraf';
+import { showTaskEpicBrowserData, showEpicTasksData, deleteTaskData, selectTaskEpicData } from '../utils/callback-data';
+import { inlineKeyboard, toCallbackButton } from './common';
+import { buildBackAndCancelRow, buildCancelRow, buildCreateEpicAndCancelRow } from './navigation';
 
-import { TaskFilter } from '../types/domain';
-import { taskListNavData } from '../utils/callback-data';
-import { paginate } from '../utils/pagination';
-import { inlineKeyboard, paginationRow } from './common';
+type EpicLike = {
+  id: string;
+  name: string;
+};
 
 type TaskLike = {
   id: string;
   name: string;
-  epic: { name: string };
 };
 
-export function buildTaskListKeyboard(tasks: TaskLike[], filter: TaskFilter, page = 0) {
-  const slice = paginate(tasks, page);
-  const rows = slice.items.map((task) => [
-    Markup.button.callback(`📝 ${task.name} - ${task.epic.name}`, `tv|${task.id}`),
-  ]);
-
-  if (slice.pageCount > 1) {
-    rows.push(paginationRow(
-      slice.page > 0 ? taskListNavData(filter, slice.page - 1) : null,
-      slice.page < slice.pageCount - 1 ? taskListNavData(filter, slice.page + 1) : null,
-      slice.page,
-      slice.pageCount,
-    ));
-  }
-
-  rows.push([Markup.button.callback('Create task', 'nt')]);
-
-  return inlineKeyboard(rows);
-}
-
-export function buildTaskActionKeyboard(taskId: string) {
+export function buildTaskEpicBrowserKeyboard(epics: EpicLike[]) {
   return inlineKeyboard([
-    [Markup.button.callback('Complete', `tx|${taskId}`)],
+    ...epics.map((epic) => [toCallbackButton(epic.name, showEpicTasksData(epic.id))]),
+    buildCancelRow(),
   ]);
 }
 
-export function buildTaskCreateKeyboard() {
+export function buildTaskListKeyboard(tasks: TaskLike[], epicId: string) {
   return inlineKeyboard([
-    [Markup.button.callback('Create task', 'nt')],
+    ...tasks.map((task) => [toCallbackButton(task.name, deleteTaskData(task.id, epicId))]),
+    buildBackAndCancelRow(showTaskEpicBrowserData()),
+  ]);
+}
+
+export function buildTaskBatchEpicKeyboard(epics: EpicLike[]) {
+  return inlineKeyboard([
+    ...epics.map((epic) => [toCallbackButton(epic.name, selectTaskEpicData(epic.id))]),
+    buildCreateEpicAndCancelRow(),
   ]);
 }

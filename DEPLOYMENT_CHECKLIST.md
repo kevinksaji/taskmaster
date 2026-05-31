@@ -6,8 +6,8 @@
 - Confirm the required environment variables exist:
   - `BOT_TOKEN`
   - `TELEGRAM_WEBHOOK_SECRET`
-  - `STORAGE_POSTGRES_PRISMA_URL`
-  - `STORAGE_POSTGRES_URL_NON_POOLING`
+  - `STORAGE_DATABASE_URL`
+  - `STORAGE_DATABASE_URL_UNPOOLED`
   - `APP_BASE_URL`
 - Confirm your Neon database is reachable.
 - Confirm your Telegram bot token is valid.
@@ -24,8 +24,8 @@
 
 - `BOT_TOKEN`: Telegram bot token from BotFather.
 - `TELEGRAM_WEBHOOK_SECRET`: Any long random secret string used to validate Telegram webhook requests.
-- `STORAGE_POSTGRES_PRISMA_URL`: Neon Prisma pooled connection string.
-- `STORAGE_POSTGRES_URL_NON_POOLING`: Neon direct connection string.
+- `STORAGE_DATABASE_URL`: Neon/Vercel Storage pooled connection string.
+- `STORAGE_DATABASE_URL_UNPOOLED`: Neon/Vercel Storage direct connection string.
 - `APP_BASE_URL`: Final deployed base URL, for example `https://your-project.vercel.app`.
 
 ## First production deploy
@@ -49,9 +49,12 @@
 - Open the deployed health or webhook route if needed.
 - Send `/start` to the bot.
 - Confirm commands appear in Telegram.
-- Create one epic and one task.
-- Confirm callback buttons work.
-- Confirm task completion deletes the task.
+- Confirm `t do the laundry` prompts for epic selection with inline buttons.
+- Confirm `/t` shows epics and then tasks as inline buttons.
+- Confirm tapping a task deletes it immediately.
+- Confirm `/e` shows epics plus a cancel button.
+- Confirm tapping an epic deletes it and its tasks immediately.
+- Confirm `/c` clears a pending task-batch operation without replaying the `/start` intro.
 
 ## Rollback and maintenance
 
