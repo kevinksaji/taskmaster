@@ -5,7 +5,7 @@ import { inlineKeyboard } from './common';
 export function buildEpicCreatedKeyboard(epicId: string) {
   return inlineKeyboard([
     [
-      Markup.button.callback('View epic', `ev|${epicId}`),
+      Markup.button.callback('View tasks in epic', `et|${epicId}`),
       Markup.button.callback('Create task in this epic', `tc|${epicId}`),
     ],
     [Markup.button.callback('Create another epic', 'ne')],

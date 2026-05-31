@@ -1,5 +1,3 @@
-import { TaskStatus } from '@prisma/client';
-
 import { epicRepository } from '../repositories/epicRepository';
 import { taskRepository } from '../repositories/taskRepository';
 import { TaskFilter } from '../types/domain';
@@ -32,7 +30,6 @@ export const taskService = {
   async createTask(input: {
     telegramUserId: string;
     name: string;
-    dueDate: Date | null;
     epicId: string;
   }) {
     const name = taskNameSchema.parse(input.name);
@@ -41,61 +38,13 @@ export const taskService = {
     return taskRepository.create({
       telegramUserId: input.telegramUserId,
       name,
-      dueDate: input.dueDate,
       epicId: input.epicId,
-      status: TaskStatus.TODO,
     });
-  },
-
-  async updateTask(input: {
-    telegramUserId: string;
-    taskId: string;
-    name?: string;
-    dueDate?: Date | null;
-    epicId?: string;
-    status?: TaskStatus;
-  }) {
-    await this.getTaskOrThrow(input.telegramUserId, input.taskId);
-
-    if (input.epicId) {
-      await this.ensureEpicOwnership(input.telegramUserId, input.epicId);
-    }
-
-    const data: {
-      name?: string;
-      dueDate?: Date | null;
-      epicId?: string;
-      status?: TaskStatus;
-    } = {};
-
-    if (typeof input.name === 'string') {
-      data.name = taskNameSchema.parse(input.name);
-    }
-
-    if (Object.prototype.hasOwnProperty.call(input, 'dueDate')) {
-      data.dueDate = input.dueDate ?? null;
-    }
-
-    if (input.epicId) {
-      data.epicId = input.epicId;
-    }
-
-    if (input.status) {
-      data.status = input.status;
-    }
-
-    await taskRepository.update(input.taskId, input.telegramUserId, data);
-    return this.getTaskOrThrow(input.telegramUserId, input.taskId);
   },
 
   async deleteTask(telegramUserId: string, taskId: string) {
     const task = await this.getTaskOrThrow(telegramUserId, taskId);
     await taskRepository.delete(taskId, telegramUserId);
     return task;
-  },
-
-  async setTaskStatus(telegramUserId: string, taskId: string, status: TaskStatus) {
-    await taskRepository.update(taskId, telegramUserId, { status });
-    return this.getTaskOrThrow(telegramUserId, taskId);
   },
 };

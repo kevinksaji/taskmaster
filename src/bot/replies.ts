@@ -56,6 +56,11 @@ export const botReplies = {
 
   async showTasksList(ctx: Context, telegramUserId: string, filter: TaskFilter, page = 0, replace = false) {
     const tasks = await taskService.listTasks(telegramUserId, filter);
+    if (tasks.length === 0) {
+      await sendOrEdit(ctx, '📭 No tasks found.', buildTaskCreateKeyboard(), replace);
+      return;
+    }
+
     await sendOrEdit(ctx, formatTaskList(tasks, filter), buildTaskListKeyboard(tasks, filter, page), replace);
   },
 
@@ -66,6 +71,6 @@ export const botReplies = {
 
   async showTaskDetails(ctx: Context, telegramUserId: string, taskId: string, replace = false) {
     const task = await taskService.getTaskOrThrow(telegramUserId, taskId);
-    await sendOrEdit(ctx, formatTaskDetails(task), buildTaskActionKeyboard(task.id, task.status), replace);
+    await sendOrEdit(ctx, formatTaskDetails(task), buildTaskActionKeyboard(task.id), replace);
   },
 };

@@ -1,21 +1,7 @@
-import { TaskStatus } from '@prisma/client';
-
 import { TaskFilter } from '../types/domain';
 
 export const EPIC_PURPOSE = {
-  VIEW: 'evs',
-  UPDATE: 'eus',
-  DELETE: 'eds',
   TASK_CREATE: 'tce',
-  TASK_UPDATE: 'tue',
-} as const;
-
-export const TASK_PURPOSE = {
-  VIEW: 'tvs',
-  UPDATE: 'tus',
-  DELETE: 'tds',
-  DONE: 'tdo',
-  UNDONE: 'tun',
 } as const;
 
 export function epicSelectionData(purpose: string, epicId: string) {
@@ -40,12 +26,4 @@ export function epicListNavData(page: number) {
 
 export function taskListNavData(filter: TaskFilter, page: number) {
   return `tl|${filter}|${page}`;
-}
-
-export function taskFilterShortcutData(purpose: string, filter: TaskFilter) {
-  return `tf|${purpose}|${filter}`;
-}
-
-export function taskStatusData(taskId: string, status: TaskStatus) {
-  return `tt|${taskId}|${status}`;
 }

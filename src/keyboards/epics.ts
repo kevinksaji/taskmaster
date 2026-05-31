@@ -12,10 +12,7 @@ type EpicLike = {
 
 export function buildEpicListKeyboard(epics: EpicLike[], page = 0) {
   const slice = paginate(epics, page);
-  const rows = slice.items.flatMap((epic) => [
-    [Markup.button.callback(`📘 ${epic.name}`, `et|${epic.id}`)],
-    [Markup.button.callback('Delete', `ed|${epic.id}`)],
-  ]);
+  const rows = slice.items.map((epic) => [Markup.button.callback(`📘 ${epic.name}`, `et|${epic.id}`)]);
 
   if (slice.pageCount > 1) {
     rows.push(paginationRow(

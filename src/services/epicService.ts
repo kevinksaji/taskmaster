@@ -1,4 +1,4 @@
-import { Prisma, TaskStatus } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 import { epicRepository } from '../repositories/epicRepository';
 import { UserFacingError } from '../utils/errors';
@@ -27,8 +27,6 @@ export const epicService = {
       tasks,
       counts: {
         total: tasks.length,
-        todo: tasks.filter((task) => task.status === TaskStatus.TODO).length,
-        done: tasks.filter((task) => task.status === TaskStatus.DONE).length,
       },
     };
   },
@@ -48,37 +46,5 @@ export const epicService = {
 
       throw error;
     }
-  },
-
-  async updateEpic(input: { telegramUserId: string; epicId: string; name?: string }) {
-    await this.getEpicOrThrow(input.telegramUserId, input.epicId);
-
-    const data: { name?: string } = {};
-
-    if (typeof input.name === 'string') {
-      data.name = epicNameSchema.parse(input.name);
-    }
-
-    try {
-      await epicRepository.update(input.epicId, input.telegramUserId, data);
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new UserFacingError('You already have an epic with that name. Please choose another name.');
-      }
-
-      throw error;
-    }
-
-    return this.getEpicOrThrow(input.telegramUserId, input.epicId);
-  },
-
-  async deleteEpic(input: { telegramUserId: string; epicId: string; cascade: boolean }) {
-    const details = await this.getEpicDetails(input.telegramUserId, input.epicId);
-    if (details.tasks.length > 0 && !input.cascade) {
-      throw new UserFacingError('This epic still has tasks. Choose cascade delete or cancel.');
-    }
-
-    await epicRepository.delete(input.epicId, input.telegramUserId);
-    return details;
   },
 };
