@@ -31,9 +31,9 @@
 ## First production deploy
 
 - Trigger the initial Vercel deployment.
-- After deployment succeeds, run Prisma migration against the production database:
+- Before sending traffic to a brand-new production database, apply the committed Prisma migrations:
   ```bash
-  npm run prisma:migrate -- --name init
+  npm run prisma:deploy
   ```
 - Set the Telegram webhook:
   ```bash
@@ -51,7 +51,7 @@
 - Confirm commands appear in Telegram.
 - Create one epic and one task.
 - Confirm callback buttons work.
-- Confirm task status updates persist.
+- Confirm task completion deletes the task.
 
 ## Rollback and maintenance
 
@@ -60,4 +60,4 @@
   npm run webhook:delete
   ```
 - If you change domains, update `APP_BASE_URL` and run `npm run webhook:set` again.
-- If you change schema, run a new Prisma migration before expecting the new code path to work.
+- If you change schema, create a new migration locally with `npm run prisma:migrate -- --name <change>` and apply committed migrations to production with `npm run prisma:deploy`.
