@@ -16,22 +16,116 @@ Core capabilities:
 - `/e` shows epics as inline buttons and deletes the selected epic together with all of its tasks
 - `/c` cancels the current pending operation without replaying the `/start` introduction
 
-## Architecture summary
+## Runtime structure
 
-The application follows a layered structure:
+The application is split by responsibility rather than by Telegram feature.
 
-- `src/commands`: Telegram slash command entrypoints
-- `src/scenes`: Text router for prefixes and pending user operations
-- `src/actions`: Inline callback router for browsing and destructive actions
-- `src/services`: Business rules and ownership enforcement
-- `src/repositories`: Prisma data access helpers
-- `src/keyboards`: Reusable inline keyboard builders
-- `src/utils`: Callback encoding, logging, and shared Telegram helpers
-- `src/api`: Shared webhook processing logic
-- `api/telegram/webhook.ts`: Vercel webhook entrypoint
-- `prisma/schema.prisma`: Database schema for epics, tasks, and persisted operation state
+- `src/server.ts`: Local Express server for development.
+- `api/telegram/webhook.ts`: Vercel entrypoint that forwards Telegram webhook requests into shared app logic.
+- `src/api/telegramWebhook.ts`: Validates the webhook request and hands the update to the bot.
+- `src/bot/createBot.ts`: Creates the Telegraf bot once, registers handlers, and bootstraps the Telegram command list.
+- `src/commands`: Slash-command entrypoints for `/start`, `/t`, `/e`, and `/c`.
+- `src/scenes/navigationTextRouter.ts`: Handles plain text messages, including `t ...`, `e ...`, and the follow-up epic name in the task-batch flow.
+- `src/actions/callbackRouter.ts`: Handles inline-button callback payloads.
+- `src/bot/replies.ts`: Presentation layer that renders bot messages and inline keyboards.
+- `src/keyboards`: Builds the inline keyboards used by the reply layer.
+- `src/services`: Business logic for epics, tasks, bootstrap, and persisted session state.
+- `src/repositories`: Prisma access layer for epics, tasks, and per-user sessions.
+- `src/utils`: Shared Telegram helpers, callback-data builders, errors, and logging.
+- `prisma/schema.prisma`: Database schema for epics, tasks, and the persisted user session.
 
-The bot stays stateless at the process level for browsing because inline callback payloads carry the selected entity IDs. It persists a small `UserSession` record only for pending message-driven task creation, so a user can send `t item one\nitem two` first and choose or create the destination epic in the next step.
+The bot stays stateless at the process level for browsing because inline callback payloads carry the selected entity IDs. It persists a small `UserSession` row only for pending message-driven task creation, so a user can send `t item one\nitem two` first and choose or create the destination epic in the next step.
+
+## Request path
+
+Every Telegram update moves through the same top-level path:
+
+1. Telegram sends a webhook request.
+2. `api/telegram/webhook.ts` receives the request on Vercel, or `src/server.ts` receives it locally.
+3. `src/api/telegramWebhook.ts` validates the method and webhook secret.
+4. `src/bot/createBot.ts` provides the Telegraf bot instance and routes the update by type.
+5. One of three branches handles the update:
+   - slash commands go through `src/commands`
+   - inline button taps go through `src/actions/callbackRouter.ts`
+   - normal text goes through `src/scenes/navigationTextRouter.ts`
+6. Those handlers call services and then render the next Telegram message through `src/bot/replies.ts`.
+
+## Flow map
+
+The bot has three active control surfaces, and each one owns a different part of the flow.
+
+### Slash commands
+
+- `/start` is registered in `src/commands/start.ts`
+- `/t` is registered in `src/commands/t.ts`
+- `/e` is registered in `src/commands/e.ts`
+- `/c` is registered in `src/commands/c.ts`
+- `src/commands/index.ts` wires all four into the bot.
+
+These files are intentionally thin. They only identify the current user, choose the next action, and call either the reply layer or the session layer.
+
+### Text-driven flow
+
+`src/scenes/navigationTextRouter.ts` owns the message-first flow.
+
+- `t ...` parses one or more task names, stores them in `sessionService`, and opens the epic picker.
+- `e ...` creates one or more epics directly from the message text.
+- plain text is ignored unless the user is currently in `TASK_BATCH_CREATE_EPIC_NAME` mode.
+- when the user is in that mode, the next text message becomes the new epic name and the staged tasks are created under it.
+
+The text router is where the nested decision tree for typed input lives. It decides whether the incoming text is:
+
+- a staged task batch
+- an immediate epic creation request
+- a follow-up response inside an existing session
+- or irrelevant to the bot flow
+
+### Inline-button flow
+
+`src/actions/callbackRouter.ts` owns the inline-button side of the bot.
+
+- `tb` opens the task epic browser
+- `tv` opens one epic's task list
+- `td` deletes a task and refreshes the current epic view
+- `eb` opens the epic deletion browser
+- `ed` deletes an epic and refreshes the epic browser
+- `ts` assigns staged tasks to an existing epic
+- `tc` switches the staged task flow into “create a new epic name” mode
+- `cx` cancels the current session
+
+This file is the routing layer for callback payloads. It does not build keyboards or compose text itself; it delegates rendering to `src/bot/replies.ts`.
+
+### Reply/presentation flow
+
+`src/bot/replies.ts` is the presentation layer.
+
+- it fetches any data needed to render the next screen
+- it chooses the user-facing text
+- it attaches the correct inline keyboard
+- it decides whether the bot should send a new message or edit the existing one in place
+
+This is what keeps `callbackRouter.ts` and `navigationTextRouter.ts` from filling up with Telegram formatting code.
+
+## Data and session layers
+
+The service and repository layers are deliberately small:
+
+- `src/services/epicService.ts`: epic creation, lookup, and deletion rules
+- `src/services/taskService.ts`: task creation, lookup, ownership checks, and deletion rules
+- `src/services/sessionService.ts`: per-user persisted bot session for `/start` state and pending task batches
+- `src/services/bootstrapService.ts`: one-time Telegram command registration
+- `src/repositories/epicRepository.ts`: Prisma queries for epics
+- `src/repositories/taskRepository.ts`: Prisma queries for tasks
+- `src/repositories/sessionRepository.ts`: Prisma queries for `UserSession`
+
+The nested behavior in the codebase is mostly not deep class inheritance or framework magic. It is a flow split across layers:
+
+1. route the Telegram update
+2. run the business action
+3. fetch the next render state
+4. send or edit the next Telegram message
+
+That split is what makes the code look distributed across several files, but each file has a narrow job.
 
 ## Required environment variables
 
@@ -200,9 +294,10 @@ Message prefixes:
 
 This project does not rely on in-memory Telegraf session storage. Instead:
 
-- Each user gets a small persisted `UserSession` record
-- The record stores whether `/start` has already been shown and whether a task batch is waiting for epic selection or epic creation
-- The same bot behavior works locally and in Vercel serverless functions
+- Each user gets a small persisted `UserSession` record.
+- That record stores whether `/start` has already been shown.
+- It also stores whether the user is in the middle of the task-batch flow and, if so, which task names are still pending.
+- Because the state is persisted in Postgres, the same behavior works locally, on Vercel, and across separate webhook invocations.
 
 ## Troubleshooting
 

@@ -35,10 +35,6 @@ export const epicService = {
     return { created, skipped };
   },
 
-  listEpicTasks(telegramUserId: string, epicId: string) {
-    return epicRepository.listTasks(epicId, telegramUserId);
-  },
-
   async getEpicOrThrow(telegramUserId: string, epicId: string) {
     const epic = await epicRepository.findByIdForUser(epicId, telegramUserId);
     if (!epic) {

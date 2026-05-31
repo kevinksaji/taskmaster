@@ -23,19 +23,6 @@ export function getIdentity(ctx: Context): TelegramIdentity {
   };
 }
 
-export function getCommandArgument(text: string | undefined): string | null {
-  if (!text) {
-    return null;
-  }
-
-  const [command, ...rest] = text.trim().split(/\s+/);
-  if (!command || !command.startsWith('/')) {
-    return null;
-  }
-
-  return rest.join(' ').trim() || null;
-}
-
 export function isCommandText(text: string | undefined): boolean {
   return Boolean(text?.trim().startsWith('/'));
 }
@@ -51,21 +38,5 @@ export async function answerCallback(ctx: Context, text?: string) {
     logger.warn('telegram.callback.answer_failed', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-  }
-}
-
-export async function deleteCurrentMessage(ctx: Context) {
-  if (!('deleteMessage' in ctx) || typeof ctx.deleteMessage !== 'function') {
-    return false;
-  }
-
-  try {
-    await ctx.deleteMessage();
-    return true;
-  } catch (error) {
-    logger.warn('telegram.message.delete_failed', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    return false;
   }
 }

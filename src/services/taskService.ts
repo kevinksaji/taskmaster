@@ -3,17 +3,8 @@ import { taskRepository } from '../repositories/taskRepository';
 import { UserFacingError } from '../utils/errors';
 
 export const taskService = {
-  listTasks(telegramUserId: string) {
-    return taskRepository.listByUser(telegramUserId);
-  },
-
   listTasksForEpic(telegramUserId: string, epicId: string) {
     return taskRepository.listByEpic(epicId, telegramUserId);
-  },
-
-  async createTask(input: { telegramUserId: string; name: string; epicId: string }) {
-    await this.ensureEpicOwnership(input.telegramUserId, input.epicId);
-    return taskRepository.create(input);
   },
 
   async createTasks(input: { telegramUserId: string; epicId: string; names: string[] }) {
