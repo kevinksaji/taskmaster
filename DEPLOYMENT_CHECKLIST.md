@@ -6,7 +6,8 @@
 - Confirm the required environment variables exist:
   - `BOT_TOKEN`
   - `TELEGRAM_WEBHOOK_SECRET`
-  - `DATABASE_URL`
+  - `STORAGE_POSTGRES_PRISMA_URL`
+  - `STORAGE_POSTGRES_URL_NON_POOLING`
   - `APP_BASE_URL`
 - Confirm your Neon database is reachable.
 - Confirm your Telegram bot token is valid.
@@ -23,7 +24,8 @@
 
 - `BOT_TOKEN`: Telegram bot token from BotFather.
 - `TELEGRAM_WEBHOOK_SECRET`: Any long random secret string used to validate Telegram webhook requests.
-- `DATABASE_URL`: Neon PostgreSQL connection string.
+- `STORAGE_POSTGRES_PRISMA_URL`: Neon Prisma pooled connection string.
+- `STORAGE_POSTGRES_URL_NON_POOLING`: Neon direct connection string.
 - `APP_BASE_URL`: Final deployed base URL, for example `https://your-project.vercel.app`.
 
 ## First production deploy
