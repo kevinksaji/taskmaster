@@ -1,5 +1,5 @@
 import { Context } from 'telegraf';
-import { InlineKeyboardMarkup } from 'telegraf/types';
+import { InlineKeyboardMarkup, ParseMode } from 'telegraf/types';
 
 const Quote = require('inspirational-quotes') as {
   getQuote(options?: { author?: boolean }): { text: string; author?: string };
@@ -12,39 +12,24 @@ import { sessionService } from '../services/sessionService';
 import { taskService } from '../services/taskService';
 import { UserFacingError } from '../utils/errors';
 
-function getNextQuote(lastQuoteText: string | null) {
-  let quote = Quote.getQuote();
-
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    if (!lastQuoteText || quote.text !== lastQuoteText) {
-      break;
-    }
-
-    quote = Quote.getQuote();
-  }
-
-  return quote;
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 async function buildOverviewText(telegramUserId: string, heading: string) {
-  const [epics, session] = await Promise.all([
-    epicService.listEpics(telegramUserId),
-    sessionService.getSession(telegramUserId),
-  ]);
+  const epics = await epicService.listEpics(telegramUserId);
   const taskCount = epics.reduce((total, epic) => total + epic._count.tasks, 0);
-  const quote = getNextQuote(session.lastQuoteText);
-
-  await sessionService.persistSession(telegramUserId, {
-    ...session,
-    lastQuoteText: quote.text,
-  });
+  const quote = Quote.getQuote();
 
   return [
-    heading,
+    escapeHtml(heading),
     `📚 Epics: ${epics.length}`,
     `✅ Tasks: ${taskCount}`,
     '',
-    `_${quote.text}${quote.author ? ` - ${quote.author}` : ''}_`,
+    `<i>${escapeHtml(`${quote.text}${quote.author ? ` - ${quote.author}` : ''}`)}</i>`,
   ].join('\n');
 }
 
@@ -52,17 +37,25 @@ async function buildOverviewText(telegramUserId: string, heading: string) {
 // Routers and commands decide *what* should happen, while these helpers decide
 // *how* the next bot message should look and whether an inline-button screen
 // should replace the current message or send a new one.
-async function sendOrEdit(ctx: Context, text: string, replyMarkup?: InlineKeyboardMarkup, replace = false) {
+async function sendOrEdit(
+  ctx: Context,
+  text: string,
+  replyMarkup?: InlineKeyboardMarkup,
+  replace = false,
+  parseMode?: ParseMode,
+) {
   // Callback-query flows usually edit the existing bot message in place so the
   // chat stays compact. Plain command and text flows send a fresh message.
   if (replace && 'editMessageText' in ctx && typeof ctx.editMessageText === 'function') {
     await ctx.editMessageText(text, {
+      parse_mode: parseMode,
       reply_markup: replyMarkup,
     });
     return;
   }
 
   await ctx.reply(text, {
+    parse_mode: parseMode,
     reply_markup: replyMarkup,
   });
 }
@@ -116,13 +109,13 @@ export const botReplies = {
 
   async showOverview(ctx: Context, telegramUserId: string, heading: string, replace = false) {
     const text = await buildOverviewText(telegramUserId, heading);
-    await sendOrEdit(ctx, text, undefined, replace);
+    await sendOrEdit(ctx, text, undefined, replace, 'HTML');
   },
 
   // Shared terminal messages for small flow transitions.
   async showCancelled(ctx: Context, telegramUserId: string, replace = false) {
     const text = await buildOverviewText(telegramUserId, '🧹 Reset complete');
-    await sendOrEdit(ctx, text, undefined, replace);
+    await sendOrEdit(ctx, text, undefined, replace, 'HTML');
   },
 
   async showTaskBatchNeedsEpicName(ctx: Context, replace = false) {
