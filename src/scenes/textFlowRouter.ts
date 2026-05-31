@@ -1,6 +1,6 @@
 import { Context } from 'telegraf';
 
-import { buildEpicCreatedKeyboard, buildTaskCreatedKeyboard } from '../keyboards/followups';
+import { buildEpicsFlowKeyboard, buildTasksFlowKeyboard } from '../keyboards/navigation';
 import { botReplies } from '../bot/replies';
 import { conversationService } from '../services/conversationService';
 import { epicService } from '../services/epicService';
@@ -34,7 +34,9 @@ export async function routeTextFlow(ctx: Context) {
       await handleTaskCreate(ctx, identity.userId, identity.chatId, state.step, state.payload, text);
       return;
     default:
-      await ctx.reply('Use the buttons shown in the current flow, or send /cancel to stop it.');
+      await ctx.reply('Use the buttons shown in the current flow.', {
+        reply_markup: buildTasksFlowKeyboard(),
+      });
   }
 }
 
@@ -60,13 +62,15 @@ async function handleEpicCreate(
         counts: { total: 0 },
       })}\n\n✅ Epic created successfully.`,
       {
-        reply_markup: buildEpicCreatedKeyboard(created.id),
+        reply_markup: buildEpicsFlowKeyboard(),
       },
     );
     return;
   }
 
-  await ctx.reply('Use the current buttons or send /cancel to exit this flow.');
+  await ctx.reply('Use the current buttons in the keyboard below.', {
+    reply_markup: buildEpicsFlowKeyboard(),
+  });
 }
 
 async function handleTaskCreate(
@@ -92,7 +96,7 @@ async function handleTaskCreate(
 
       await conversationService.clearFlow(userId);
       await ctx.reply(`✅ Task created.\n\n${formatTaskDetails(task)}`, {
-        reply_markup: buildTaskCreatedKeyboard(task.id),
+        reply_markup: buildTasksFlowKeyboard(),
       });
       return;
     }
@@ -100,7 +104,9 @@ async function handleTaskCreate(
     const epics = await epicService.listEpics(userId);
     if (epics.length === 0) {
       await conversationService.clearFlow(userId);
-      await ctx.reply('You need at least one epic before creating a task. Use /epic_create first.');
+      await ctx.reply('You need at least one epic before creating a task. Use the Create epic button, or Back to return to the main menu.', {
+        reply_markup: buildTasksFlowKeyboard(),
+      });
       return;
     }
 
@@ -110,14 +116,21 @@ async function handleTaskCreate(
       payload: nextPayload,
     });
 
+    await ctx.reply('Choose an epic below. The Create task and Back buttons will stay available while you are in this flow.', {
+      reply_markup: buildTasksFlowKeyboard(),
+    });
     await botReplies.showEpicSelection(ctx, userId, EPIC_PURPOSE.TASK_CREATE);
     return;
   }
 
   if (step === 'WAIT_EPIC_SELECTION') {
-    await ctx.reply('Choose an epic using the inline buttons, or send /cancel.');
+    await ctx.reply('Choose an epic using the inline buttons, or use the keyboard below to restart or go back.', {
+      reply_markup: buildTasksFlowKeyboard(),
+    });
     return;
   }
 
-  await ctx.reply('Use the current buttons or send /cancel to exit this flow.');
+  await ctx.reply('Use the current buttons in the keyboard below.', {
+    reply_markup: buildTasksFlowKeyboard(),
+  });
 }
