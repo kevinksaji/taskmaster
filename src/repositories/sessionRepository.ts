@@ -1,72 +1,78 @@
 import { env } from '../config/env';
 import { redis } from '../lib/redis';
 
-type StoredSessionRecord = {
-  started: boolean;
-  operationKind: string;
-  sessionData: Record<string, unknown>;
+type StoredOperationRecord = {
+  kind: string;
+  taskNames: string[];
 };
 
 const SESSION_KEY_PREFIX = 'user-session';
 
-function getSessionKey(telegramUserId: string) {
-  return `${SESSION_KEY_PREFIX}:${telegramUserId}`;
+function getStartedKey(telegramUserId: string) {
+  return `${SESSION_KEY_PREFIX}:${telegramUserId}:started`;
 }
 
-function normalizeRecord(value: unknown): StoredSessionRecord | null {
+function getOperationKey(telegramUserId: string) {
+  return `${SESSION_KEY_PREFIX}:${telegramUserId}:operation`;
+}
+
+function normalizeOperation(value: unknown): StoredOperationRecord | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
   }
 
   const candidate = value as Record<string, unknown>;
-  const sessionData = candidate.sessionData && typeof candidate.sessionData === 'object' && !Array.isArray(candidate.sessionData)
-    ? candidate.sessionData as Record<string, unknown>
-    : {};
+  const taskNames = Array.isArray(candidate.taskNames)
+    ? candidate.taskNames.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+    : [];
 
   return {
-    started: candidate.started === true,
-    operationKind: typeof candidate.operationKind === 'string' ? candidate.operationKind : 'IDLE',
-    sessionData,
+    kind: typeof candidate.kind === 'string' ? candidate.kind : 'IDLE',
+    taskNames,
   };
 }
 
 export const sessionRepository = {
-  async get(telegramUserId: string) {
-    const stored = await redis.get(getSessionKey(telegramUserId));
-    if (!stored) {
-      return null;
-    }
+  async getSessionState(telegramUserId: string) {
+    const [startedValue, operationValue] = await Promise.all([
+      redis.get<string>(getStartedKey(telegramUserId)),
+      redis.get<StoredOperationRecord | string>(getOperationKey(telegramUserId)),
+    ]);
+
+    let operation: StoredOperationRecord | null = null;
 
     try {
-      return normalizeRecord(JSON.parse(stored));
+      operation = typeof operationValue === 'string'
+        ? normalizeOperation(JSON.parse(operationValue))
+        : normalizeOperation(operationValue);
     } catch {
-      return null;
+      operation = null;
     }
-  },
-
-  async upsert(input: {
-    telegramUserId: string;
-    started: boolean;
-    operationKind: string;
-    sessionData: Record<string, unknown>;
-  }) {
-    const payload: StoredSessionRecord = {
-      started: input.started,
-      operationKind: input.operationKind,
-      sessionData: input.sessionData,
-    };
-
-    await redis.set(getSessionKey(input.telegramUserId), JSON.stringify(payload), {
-      EX: env.SESSION_TTL_SECONDS,
-    });
 
     return {
-      telegramUserId: input.telegramUserId,
-      ...payload,
+      started: startedValue === '1',
+      operation,
     };
   },
 
-  clear(telegramUserId: string) {
-    return redis.del(getSessionKey(telegramUserId));
+  markStarted(telegramUserId: string) {
+    return redis.set(getStartedKey(telegramUserId), '1');
+  },
+
+  setOperation(input: {
+    telegramUserId: string;
+    kind: string;
+    taskNames: string[];
+  }) {
+    return redis.set(getOperationKey(input.telegramUserId), {
+      kind: input.kind,
+      taskNames: input.taskNames,
+    }, {
+      ex: env.SESSION_TTL_SECONDS,
+    });
+  },
+
+  clearOperation(telegramUserId: string) {
+    return redis.del(getOperationKey(telegramUserId));
   },
 };
