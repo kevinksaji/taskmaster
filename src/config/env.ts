@@ -6,6 +6,9 @@ const envSchema = z.object({
   BOT_TOKEN: z.string().min(1, 'BOT_TOKEN is required'),
   TELEGRAM_WEBHOOK_SECRET: z.string().min(1, 'TELEGRAM_WEBHOOK_SECRET is required'),
   STORAGE_DATABASE_URL: z.string().min(1, 'STORAGE_DATABASE_URL is required'),
+  STORAGE_DATABASE_URL_UNPOOLED: z.string().min(1, 'STORAGE_DATABASE_URL_UNPOOLED is required'),
+  REDIS_URL: z.string().url('REDIS_URL must be a valid URL'),
+  SESSION_TTL_SECONDS: z.coerce.number().int().positive().default(604800),
   APP_BASE_URL: z.string().url('APP_BASE_URL must be a valid URL'),
   PORT: z.coerce.number().int().positive().default(3000),
 });

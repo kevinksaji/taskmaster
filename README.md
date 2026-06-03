@@ -29,12 +29,55 @@ The application is split by responsibility rather than by Telegram feature.
 - `src/actions/callbackRouter.ts`: Handles inline-button callback payloads.
 - `src/bot/replies.ts`: Presentation layer that renders bot messages and inline keyboards.
 - `src/keyboards`: Builds the inline keyboards used by the reply layer.
-- `src/services`: Business logic for epics, tasks, bootstrap, and persisted session state.
-- `src/repositories`: Prisma access layer for epics, tasks, and per-user sessions.
+- `src/services`: Business logic for epics, tasks, bootstrap, and Redis-backed workflow state.
+- `src/repositories`: Prisma access layer for epics and tasks, plus the Redis-backed session repository.
 - `src/utils`: Shared Telegram helpers, callback-data builders, errors, and logging.
-- `prisma/schema.prisma`: Database schema for epics, tasks, and the persisted user session.
+- `src/lib/redis.ts`: Shared Redis client wrapper for transient workflow state.
+- `prisma/schema.prisma`: Database schema for epics and tasks.
 
-The bot stays stateless at the process level for browsing because inline callback payloads carry the selected entity IDs. It persists a small `UserSession` row only for pending message-driven task creation, so a user can send `t item one\nitem two` first and choose or create the destination epic in the next step.
+The bot stays stateless at the process level for browsing because inline callback payloads carry the selected entity IDs. It persists only the pending message-driven workflow state in Redis, so a user can send `t item one\nitem two` first and choose or create the destination epic in the next step without relying on process memory.
+
+## Storage model
+
+Taskmaster now uses two storage layers with distinct responsibilities:
+
+- Postgres via Prisma stores durable domain data: epics and tasks.
+- Redis stores transient per-user workflow state: whether the user has started and any pending task-batch operation.
+
+### ER diagram
+
+```mermaid
+erDiagram
+   Epic ||--o{ Task : contains
+
+   Epic {
+      string id PK
+      string name
+      string telegramUserId
+      datetime createdAt
+      datetime updatedAt
+   }
+
+   Task {
+      string id PK
+      string name
+      string epicId FK
+      string telegramUserId
+      datetime createdAt
+      datetime updatedAt
+   }
+```
+
+### Storage architecture
+
+```mermaid
+flowchart LR
+   Telegram[Telegram] --> Webhook[Webhook handler]
+   Webhook --> Bot[Telegraf bot]
+   Bot -->|Create/list/delete epics and tasks| Postgres[(Postgres via Prisma)]
+   Bot -->|Read/write transient workflow state| Redis[(Redis)]
+   Redis --> SessionKey[user-session:{telegramUserId}\nstarted\noperationKind\ntaskNames\nTTL refresh on write]
+```
 
 ## Request path
 
@@ -112,11 +155,11 @@ The service and repository layers are deliberately small:
 
 - `src/services/epicService.ts`: epic creation, lookup, and deletion rules
 - `src/services/taskService.ts`: task creation, lookup, ownership checks, and deletion rules
-- `src/services/sessionService.ts`: per-user persisted bot session for `/start` state and pending task batches
+- `src/services/sessionService.ts`: per-user workflow state for `/start` state and pending task batches
 - `src/services/bootstrapService.ts`: one-time Telegram command registration
 - `src/repositories/epicRepository.ts`: Prisma queries for epics
 - `src/repositories/taskRepository.ts`: Prisma queries for tasks
-- `src/repositories/sessionRepository.ts`: Prisma queries for `UserSession`
+- `src/repositories/sessionRepository.ts`: Redis reads and writes for per-user workflow state
 
 The nested behavior in the codebase is mostly not deep class inheritance or framework magic. It is a flow split across layers:
 
@@ -135,6 +178,8 @@ Create a local `.env` file from `.env.example` and set:
 - `TELEGRAM_WEBHOOK_SECRET`: Secret used for Telegram webhook header validation
 - `STORAGE_DATABASE_URL`: Neon/Vercel Storage pooled connection string for Prisma
 - `STORAGE_DATABASE_URL_UNPOOLED`: Neon/Vercel Storage direct connection string for Prisma migrations and other non-pooled operations
+- `REDIS_URL`: Redis connection string for transient workflow state
+- `SESSION_TTL_SECONDS`: Optional TTL for workflow state keys, defaults to `604800`
 - `APP_BASE_URL`: Public base URL of your app, for example `https://your-app.vercel.app`
 - `PORT`: Local dev port, defaults to `3000`
 
@@ -145,6 +190,13 @@ Create a local `.env` file from `.env.example` and set:
 3. Copy the Prisma connection string into `STORAGE_DATABASE_URL`.
 4. Copy the non-pooled connection string into `STORAGE_DATABASE_URL_UNPOOLED`.
 5. Ensure the database is reachable from Vercel and your local machine.
+
+## Redis setup
+
+1. Provision a Redis-compatible instance such as Upstash Redis or a managed Redis server.
+2. Copy the connection string into `REDIS_URL`.
+3. Optionally override `SESSION_TTL_SECONDS` if you want workflow keys to expire sooner or later than seven days.
+4. Ensure Redis is reachable from Vercel and your local machine.
 
 ## Prisma migration steps
 
@@ -199,6 +251,8 @@ Create a local `.env` file from `.env.example` and set:
    - `TELEGRAM_WEBHOOK_SECRET`
    - `STORAGE_DATABASE_URL`
    - `STORAGE_DATABASE_URL_UNPOOLED`
+   - `REDIS_URL`
+   - `SESSION_TTL_SECONDS` if you want a non-default session expiry
    - `APP_BASE_URL`
 3. Set `APP_BASE_URL` to the final Vercel production domain.
 4. Deploy the project.
@@ -294,16 +348,17 @@ Message prefixes:
 
 This project does not rely on in-memory Telegraf session storage. Instead:
 
-- Each user gets a small persisted `UserSession` record.
-- That record stores whether `/start` has already been shown.
+- Each user gets one Redis key at `user-session:{telegramUserId}`.
+- That value stores whether `/start` has already been shown.
 - It also stores whether the user is in the middle of the task-batch flow and, if so, which task names are still pending.
-- Because the state is persisted in Postgres, the same behavior works locally, on Vercel, and across separate webhook invocations.
+- Because the state is persisted outside process memory, the same behavior works locally, on Vercel, and across separate webhook invocations.
 
 ## Troubleshooting
 
 - If the bot does not respond, confirm the webhook is registered and points to the right `APP_BASE_URL`.
 - If Telegram returns `403`, verify `TELEGRAM_WEBHOOK_SECRET` matches the header secret configured in `setWebhook`.
 - If Prisma fails to connect, verify the pooled Prisma connection string in `STORAGE_DATABASE_URL` and the direct connection string in `STORAGE_DATABASE_URL_UNPOOLED`.
+- If task-batch flows fail after `t ...`, verify `REDIS_URL` is reachable and points at the expected Redis instance.
 - If you see errors that tables like `Epic` or `Task` do not exist, the new database has not had Prisma migrations applied yet. Run `npm run prisma:deploy` against that database.
 - If local development does not receive updates, confirm your tunnel URL is live and `APP_BASE_URL` matches it exactly.
 - If commands do not appear in Telegram, trigger the webhook once after deployment so the bot can register commands on startup.
@@ -323,7 +378,7 @@ This project does not rely on in-memory Telegraf session storage. Instead:
 
 1. Push the project to a Git repository.
 2. Import the repository into Vercel.
-3. Add `BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `STORAGE_DATABASE_URL`, `STORAGE_DATABASE_URL_UNPOOLED`, and `APP_BASE_URL` in Vercel.
+3. Add `BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `STORAGE_DATABASE_URL`, `STORAGE_DATABASE_URL_UNPOOLED`, `REDIS_URL`, and `APP_BASE_URL` in Vercel.
 4. Deploy the app.
 5. Apply Prisma migrations to the Neon production database with `npm run prisma:deploy`.
 6. Run `npm run webhook:set` with the production `APP_BASE_URL`.
