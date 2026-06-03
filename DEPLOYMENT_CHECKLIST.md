@@ -8,7 +8,8 @@
   - `TELEGRAM_WEBHOOK_SECRET`
   - `STORAGE_DATABASE_URL`
   - `STORAGE_DATABASE_URL_UNPOOLED`
-  - `REDIS_URL`
+  - `KV_REST_API_URL`
+  - `KV_REST_API_TOKEN`
   - `SESSION_TTL_SECONDS` if you want a non-default session expiry
   - `APP_BASE_URL`
 - Confirm your Neon database is reachable.
@@ -29,7 +30,8 @@
 - `TELEGRAM_WEBHOOK_SECRET`: Any long random secret string used to validate Telegram webhook requests.
 - `STORAGE_DATABASE_URL`: Neon/Vercel Storage pooled connection string.
 - `STORAGE_DATABASE_URL_UNPOOLED`: Neon/Vercel Storage direct connection string.
-- `REDIS_URL`: Redis connection string for transient workflow state.
+- `KV_REST_API_URL`: Upstash Redis REST endpoint for transient workflow state.
+- `KV_REST_API_TOKEN`: Upstash Redis REST token for transient workflow state.
 - `SESSION_TTL_SECONDS`: Optional TTL in seconds for Redis workflow keys. Defaults to `604800`.
 - `APP_BASE_URL`: Final deployed base URL, for example `https://your-project.vercel.app`.
 

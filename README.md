@@ -32,7 +32,7 @@ The application is split by responsibility rather than by Telegram feature.
 - `src/services`: Business logic for epics, tasks, bootstrap, and Redis-backed workflow state.
 - `src/repositories`: Prisma access layer for epics and tasks, plus the Redis-backed session repository.
 - `src/utils`: Shared Telegram helpers, callback-data builders, errors, and logging.
-- `src/lib/redis.ts`: Shared Redis client wrapper for transient workflow state.
+- `src/lib/redis.ts`: Shared Upstash Redis HTTP client wrapper for transient workflow state.
 - `prisma/schema.prisma`: Database schema for epics and tasks.
 
 The bot stays stateless at the process level for browsing because inline callback payloads carry the selected entity IDs. It persists only the pending message-driven workflow state in Redis, so a user can send `t item one\nitem two` first and choose or create the destination epic in the next step without relying on process memory.
@@ -178,7 +178,8 @@ Create a local `.env` file from `.env.example` and set:
 - `TELEGRAM_WEBHOOK_SECRET`: Secret used for Telegram webhook header validation
 - `STORAGE_DATABASE_URL`: Neon/Vercel Storage pooled connection string for Prisma
 - `STORAGE_DATABASE_URL_UNPOOLED`: Neon/Vercel Storage direct connection string for Prisma migrations and other non-pooled operations
-- `REDIS_URL`: Redis connection string for transient workflow state
+- `KV_REST_API_URL`: Upstash Redis REST endpoint for transient workflow state
+- `KV_REST_API_TOKEN`: Upstash Redis REST token for transient workflow state
 - `SESSION_TTL_SECONDS`: Optional TTL for workflow state keys, defaults to `604800`
 - `APP_BASE_URL`: Public base URL of your app, for example `https://your-app.vercel.app`
 - `PORT`: Local dev port, defaults to `3000`
@@ -193,10 +194,11 @@ Create a local `.env` file from `.env.example` and set:
 
 ## Redis setup
 
-1. Provision a Redis-compatible instance such as Upstash Redis or a managed Redis server.
-2. Copy the connection string into `REDIS_URL`.
-3. Optionally override `SESSION_TTL_SECONDS` if you want workflow keys to expire sooner or later than seven days.
-4. Ensure Redis is reachable from Vercel and your local machine.
+1. Provision an Upstash Redis database and connect it to your Vercel project, or create one directly in Upstash.
+2. Copy the REST endpoint into `KV_REST_API_URL`.
+3. Copy the REST token into `KV_REST_API_TOKEN`.
+4. Optionally override `SESSION_TTL_SECONDS` if you want workflow keys to expire sooner or later than seven days.
+5. Ensure the Upstash credentials are present both locally and in Vercel.
 
 ## Prisma migration steps
 
@@ -251,7 +253,8 @@ Create a local `.env` file from `.env.example` and set:
    - `TELEGRAM_WEBHOOK_SECRET`
    - `STORAGE_DATABASE_URL`
    - `STORAGE_DATABASE_URL_UNPOOLED`
-   - `REDIS_URL`
+   - `KV_REST_API_URL`
+   - `KV_REST_API_TOKEN`
    - `SESSION_TTL_SECONDS` if you want a non-default session expiry
    - `APP_BASE_URL`
 3. Set `APP_BASE_URL` to the final Vercel production domain.
@@ -358,7 +361,7 @@ This project does not rely on in-memory Telegraf session storage. Instead:
 - If the bot does not respond, confirm the webhook is registered and points to the right `APP_BASE_URL`.
 - If Telegram returns `403`, verify `TELEGRAM_WEBHOOK_SECRET` matches the header secret configured in `setWebhook`.
 - If Prisma fails to connect, verify the pooled Prisma connection string in `STORAGE_DATABASE_URL` and the direct connection string in `STORAGE_DATABASE_URL_UNPOOLED`.
-- If task-batch flows fail after `t ...`, verify `REDIS_URL` is reachable and points at the expected Redis instance.
+- If task-batch flows fail after `t ...`, verify `KV_REST_API_URL` and `KV_REST_API_TOKEN` match the expected Upstash database.
 - If you see errors that tables like `Epic` or `Task` do not exist, the new database has not had Prisma migrations applied yet. Run `npm run prisma:deploy` against that database.
 - If local development does not receive updates, confirm your tunnel URL is live and `APP_BASE_URL` matches it exactly.
 - If commands do not appear in Telegram, trigger the webhook once after deployment so the bot can register commands on startup.
@@ -378,7 +381,7 @@ This project does not rely on in-memory Telegraf session storage. Instead:
 
 1. Push the project to a Git repository.
 2. Import the repository into Vercel.
-3. Add `BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `STORAGE_DATABASE_URL`, `STORAGE_DATABASE_URL_UNPOOLED`, `REDIS_URL`, and `APP_BASE_URL` in Vercel.
+3. Add `BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `STORAGE_DATABASE_URL`, `STORAGE_DATABASE_URL_UNPOOLED`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`, and `APP_BASE_URL` in Vercel.
 4. Deploy the app.
 5. Apply Prisma migrations to the Neon production database with `npm run prisma:deploy`.
 6. Run `npm run webhook:set` with the production `APP_BASE_URL`.

@@ -18,11 +18,11 @@
     "webhook:delete": "tsx scripts/delete-webhook.ts"
   },
   "dependencies": {
+    "@upstash/redis": "^1.35.3",
     "@prisma/client": "^6.9.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "inspirational-quotes": "^2.0.1",
-    "redis": "^4.7.0",
     "telegraf": "^4.16.3",
     "zod": "^3.23.8"
   },
