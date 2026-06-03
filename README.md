@@ -42,7 +42,7 @@ The bot stays stateless at the process level for browsing because inline callbac
 Taskmaster now uses two storage layers with distinct responsibilities:
 
 - Postgres via Prisma stores durable domain data: epics and tasks.
-- Redis stores transient per-user workflow state: whether the user has started and any pending task-batch operation.
+- Redis stores transient per-user workflow state for pending task-batch operations.
 
 ### ER diagram
 
@@ -76,7 +76,7 @@ flowchart LR
    Webhook --> Bot[Telegraf bot]
    Bot -->|Create/list/delete epics and tasks| Postgres[(Postgres via Prisma)]
    Bot -->|Read/write transient workflow state| Redis[(Redis)]
-   Redis --> SessionKey[user-session:{telegramUserId}\nstarted\noperationKind\ntaskNames\nTTL refresh on write]
+   Redis --> SessionKey[user-session:{telegramUserId}:operation\nkind\ntaskNames\nTTL refresh on write]
 ```
 
 ## Request path
@@ -309,7 +309,7 @@ This clears the registered Telegram webhook without dropping pending updates.
 
 Slash commands remain available for direct access, but the bot's primary UX is message-first and inline for selection.
 
-- `/start`: Initialize the bot and show the intro once
+- `/start`: Show the overview screen
 - `/t`: Browse epics, then browse and complete tasks inside a selected epic
 - `/e`: Browse epics and delete one immediately
 - `/c`: Cancel the current pending operation
@@ -351,9 +351,8 @@ Message prefixes:
 
 This project does not rely on in-memory Telegraf session storage. Instead:
 
-- Each user gets one Redis key at `user-session:{telegramUserId}`.
-- That value stores whether `/start` has already been shown.
-- It also stores whether the user is in the middle of the task-batch flow and, if so, which task names are still pending.
+- Each user gets one Redis key at `user-session:{telegramUserId}:operation` while a task batch is active.
+- That value stores which task-batch step is in progress and, if needed, which task names are still pending.
 - Because the state is persisted outside process memory, the same behavior works locally, on Vercel, and across separate webhook invocations.
 
 ## Troubleshooting

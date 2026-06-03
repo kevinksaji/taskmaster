@@ -4,10 +4,7 @@ export const BOT_OPERATION_KINDS = {
   TASK_BATCH_CREATE_EPIC_NAME: 'TASK_BATCH_CREATE_EPIC_NAME',
 } as const;
 
-export type BotOperationKind = (typeof BOT_OPERATION_KINDS)[keyof typeof BOT_OPERATION_KINDS];
-
 export type BotSession = {
-  started: boolean;
   operation:
     | { kind: typeof BOT_OPERATION_KINDS.IDLE }
     | { kind: typeof BOT_OPERATION_KINDS.TASK_BATCH_PICK_EPIC; taskNames: string[] }
@@ -15,6 +12,5 @@ export type BotSession = {
 };
 
 export const DEFAULT_BOT_SESSION: BotSession = {
-  started: false,
   operation: { kind: BOT_OPERATION_KINDS.IDLE },
 };
