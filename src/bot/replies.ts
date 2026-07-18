@@ -7,9 +7,12 @@ const Quote = require('inspirational-quotes') as {
 
 import { buildEpicDeleteKeyboard } from '../keyboards/epics';
 import { buildTaskBatchEpicKeyboard, buildTaskEpicBrowserKeyboard, buildTaskListKeyboard } from '../keyboards/tasks';
+import { buildVaultDetailKeyboard, buildVaultListKeyboard } from '../keyboards/vault';
 import { epicService } from '../services/epicService';
 import { sessionService } from '../services/sessionService';
 import { taskService } from '../services/taskService';
+import { vaultService } from '../services/vaultService';
+import { VaultEntry, VaultKind } from '../types/vault';
 import { UserFacingError } from '../utils/errors';
 
 function escapeHtml(value: string) {
@@ -31,6 +34,35 @@ async function buildOverviewText(telegramUserId: string, heading: string) {
     '',
     `<i>${escapeHtml(`${quote.text}${quote.author ? ` - ${quote.author}` : ''}`)}</i>`,
   ].join('\n');
+}
+
+// Copy for each vault browser, keyed by kind so the `a` and `s` flows can share
+// one rendering path while still reading naturally to the user.
+const VAULT_COPY: Record<VaultKind, { empty: string; prompt: string }> = {
+  account: {
+    empty: 'No accounts found.',
+    prompt: 'Choose an account to view its details.',
+  },
+  subscription: {
+    empty: 'No subscriptions found.',
+    prompt: 'Choose a subscription to view its details.',
+  },
+};
+
+// Render a single vault entry as an HTML detail card. Values are wrapped in
+// <code> so credentials are tap-to-copy in the Telegram client.
+function buildVaultDetailText(entry: VaultEntry) {
+  const lines = [`<b>${escapeHtml(entry.name)}</b>`, ''];
+
+  if (entry.fields.length === 0) {
+    lines.push('No details recorded.');
+  } else {
+    for (const field of entry.fields) {
+      lines.push(`${escapeHtml(field.label)}: <code>${escapeHtml(field.value)}</code>`);
+    }
+  }
+
+  return lines.join('\n');
 }
 
 // This file is the bot's presentation layer for reusable Telegram responses.
@@ -120,6 +152,36 @@ export const botReplies = {
 
   async showTaskBatchNeedsEpicName(ctx: Context, replace = false) {
     await sendOrEdit(ctx, 'Send the new epic name for these pending tasks.', undefined, replace);
+  },
+
+  // Show the `/a` browser: one button per account, each opening its details.
+  async showAccountBrowser(ctx: Context, replace = false) {
+    const entries = await vaultService.listAccounts();
+    const copy = VAULT_COPY.account;
+    const text = entries.length === 0 ? copy.empty : copy.prompt;
+
+    await sendOrEdit(ctx, text, buildVaultListKeyboard(entries, 'account'), replace);
+  },
+
+  // Show every stored field for one account, with a Back link to the list.
+  async showAccountDetail(ctx: Context, accountId: string, replace = false) {
+    const entry = await vaultService.getEntryOrThrow('account', accountId);
+    await sendOrEdit(ctx, buildVaultDetailText(entry), buildVaultDetailKeyboard('account'), replace, 'HTML');
+  },
+
+  // Show the `/s` browser: one button per subscription, each opening its details.
+  async showSubscriptionBrowser(ctx: Context, replace = false) {
+    const entries = await vaultService.listSubscriptions();
+    const copy = VAULT_COPY.subscription;
+    const text = entries.length === 0 ? copy.empty : copy.prompt;
+
+    await sendOrEdit(ctx, text, buildVaultListKeyboard(entries, 'subscription'), replace);
+  },
+
+  // Show every stored field for one subscription, with a Back link to the list.
+  async showSubscriptionDetail(ctx: Context, subscriptionId: string, replace = false) {
+    const entry = await vaultService.getEntryOrThrow('subscription', subscriptionId);
+    await sendOrEdit(ctx, buildVaultDetailText(entry), buildVaultDetailKeyboard('subscription'), replace, 'HTML');
   },
 
   // A stale callback means the inline button no longer maps to a valid session
