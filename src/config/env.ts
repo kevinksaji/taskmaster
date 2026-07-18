@@ -9,6 +9,8 @@ const envSchema = z.object({
   STORAGE_DATABASE_URL_UNPOOLED: z.string().min(1, 'STORAGE_DATABASE_URL_UNPOOLED is required'),
   KV_REST_API_URL: z.string().url('KV_REST_API_URL must be a valid URL'),
   KV_REST_API_TOKEN: z.string().min(1, 'KV_REST_API_TOKEN is required'),
+  NOTION_TOKEN: z.string().min(1, 'NOTION_TOKEN is required'),
+  NOTION_DATABASE_ID: z.string().min(1, 'NOTION_DATABASE_ID is required'),
   SESSION_TTL_SECONDS: z.coerce.number().int().positive().default(604800),
   APP_BASE_URL: z.string().url('APP_BASE_URL must be a valid URL'),
   PORT: z.coerce.number().int().positive().default(3000),

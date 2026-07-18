@@ -42,6 +42,20 @@ export async function routeNavigationText(ctx: Context) {
 
   const identity = getIdentity(ctx);
 
+  // `a` and `s` are argument-free read-only browsers over the Notion vault, so
+  // they only trigger on an exact single-letter message — matching the text-first
+  // UX without hijacking ordinary sentences that merely start with those letters.
+  const command = text.toLowerCase();
+  if (command === 'a') {
+    await botReplies.showAccountBrowser(ctx);
+    return;
+  }
+
+  if (command === 's') {
+    await botReplies.showSubscriptionBrowser(ctx);
+    return;
+  }
+
   // The rewrite is text-first: messages that start with `t` create pending task
   // batches, messages that start with `e` create epics, and plain text is only
   // interpreted when the user is already inside a pending operation.

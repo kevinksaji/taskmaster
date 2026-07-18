@@ -8,10 +8,6 @@ type StoredOperationRecord = {
 
 const SESSION_KEY_PREFIX = 'user-session';
 
-function getStartedKey(telegramUserId: string) {
-  return `${SESSION_KEY_PREFIX}:${telegramUserId}:started`;
-}
-
 function getOperationKey(telegramUserId: string) {
   return `${SESSION_KEY_PREFIX}:${telegramUserId}:operation`;
 }
@@ -34,10 +30,7 @@ function normalizeOperation(value: unknown): StoredOperationRecord | null {
 
 export const sessionRepository = {
   async getSessionState(telegramUserId: string) {
-    const [startedValue, operationValue] = await Promise.all([
-      redis.get<string>(getStartedKey(telegramUserId)),
-      redis.get<StoredOperationRecord | string>(getOperationKey(telegramUserId)),
-    ]);
+    const operationValue = await redis.get<StoredOperationRecord | string>(getOperationKey(telegramUserId));
 
     let operation: StoredOperationRecord | null = null;
 
@@ -50,13 +43,8 @@ export const sessionRepository = {
     }
 
     return {
-      started: startedValue === '1',
       operation,
     };
-  },
-
-  markStarted(telegramUserId: string) {
-    return redis.set(getStartedKey(telegramUserId), '1');
   },
 
   setOperation(input: {

@@ -29,3 +29,19 @@ export function createEpicForTasksData() {
 export function cancelData() {
   return 'cx';
 }
+
+export function showAccountsData() {
+  return 'ab';
+}
+
+export function viewAccountData(accountId: string) {
+  return `av|${accountId}`;
+}
+
+export function showSubscriptionsData() {
+  return 'sb';
+}
+
+export function viewSubscriptionData(subscriptionId: string) {
+  return `sv|${subscriptionId}`;
+}
