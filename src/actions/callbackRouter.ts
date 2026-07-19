@@ -168,7 +168,7 @@ export async function handleCallbackQuery(ctx: Context) {
        */
       case 'av':
         await answerCallback(ctx);
-        await botReplies.showAccountDetail(ctx, String(arg1 ?? ''), true);
+        await botReplies.showAccountDetail(ctx, String(arg1 ?? ''));
         return;
 
       /*
@@ -188,7 +188,7 @@ export async function handleCallbackQuery(ctx: Context) {
        */
       case 'sv':
         await answerCallback(ctx);
-        await botReplies.showSubscriptionDetail(ctx, String(arg1 ?? ''), true);
+        await botReplies.showSubscriptionDetail(ctx, String(arg1 ?? ''));
         return;
 
       /*

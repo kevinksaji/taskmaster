@@ -92,6 +92,32 @@ async function sendOrEdit(
   });
 }
 
+// Delete the message the button lives on and send a brand-new one instead of
+// editing in place. Editing a message never moves the Telegram viewport, so a
+// long detail card that replaces a long list can render above the fold and
+// leave the user stranded mid-scroll. Sending a fresh message makes the client
+// scroll to the bottom, and deleting the previous message keeps the chat tidy.
+async function replaceWithFreshMessage(
+  ctx: Context,
+  text: string,
+  replyMarkup?: InlineKeyboardMarkup,
+  parseMode?: ParseMode,
+) {
+  if ('deleteMessage' in ctx && typeof ctx.deleteMessage === 'function') {
+    try {
+      await ctx.deleteMessage();
+    } catch {
+      // The originating message may already be gone (deleted or too old to
+      // edit); sending the new message is what matters, so ignore this.
+    }
+  }
+
+  await ctx.reply(text, {
+    parse_mode: parseMode,
+    reply_markup: replyMarkup,
+  });
+}
+
 export const botReplies = {
   // Show the first `/t` browser screen: one button per epic, then let the user
   // drill into that epic's tasks.
@@ -164,9 +190,11 @@ export const botReplies = {
   },
 
   // Show every stored field for one account, with a Back link to the list.
-  async showAccountDetail(ctx: Context, accountId: string, replace = false) {
+  // Sent as a fresh message so the Telegram client scrolls to the bottom and
+  // the whole card is visible even when the account list was long.
+  async showAccountDetail(ctx: Context, accountId: string) {
     const entry = await vaultService.getEntryOrThrow('account', accountId);
-    await sendOrEdit(ctx, buildVaultDetailText(entry), buildVaultDetailKeyboard('account'), replace, 'HTML');
+    await replaceWithFreshMessage(ctx, buildVaultDetailText(entry), buildVaultDetailKeyboard('account'), 'HTML');
   },
 
   // Show the `/s` browser: one button per subscription, each opening its details.
@@ -179,9 +207,11 @@ export const botReplies = {
   },
 
   // Show every stored field for one subscription, with a Back link to the list.
-  async showSubscriptionDetail(ctx: Context, subscriptionId: string, replace = false) {
+  // Sent as a fresh message so the Telegram client scrolls to the bottom and
+  // the whole card is visible even when the subscription list was long.
+  async showSubscriptionDetail(ctx: Context, subscriptionId: string) {
     const entry = await vaultService.getEntryOrThrow('subscription', subscriptionId);
-    await sendOrEdit(ctx, buildVaultDetailText(entry), buildVaultDetailKeyboard('subscription'), replace, 'HTML');
+    await replaceWithFreshMessage(ctx, buildVaultDetailText(entry), buildVaultDetailKeyboard('subscription'), 'HTML');
   },
 
   // A stale callback means the inline button no longer maps to a valid session
